@@ -1,0 +1,37 @@
+name: Release
+
+# Trigger: push a tag like v1.2.0
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Strip the leading "v" from the tag to get a bare version number
+      - name: Derive version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      # Inject the version into the JS file so the console badge matches the release
+      - name: Patch version in JS
+        run: |
+          sed -i "s/const VERSION = '[^']*'/const VERSION = '${{ steps.version.outputs.version }}'/" tdbu-shade-card.js
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "TDBU Shade Card ${{ github.ref_name }}"
+          generate_release_notes: true
+          files: tdbu-shade-card.js

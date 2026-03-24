@@ -50,6 +50,17 @@ The card shows a scaled window visualization with the two wooden rails and the s
    /hacsfiles/tdbu-shade-card/tdbu-shade-card.js
    ```
 
+> **Version numbers & update badge**
+> HACS shows a proper version number (e.g. `1.1.0`) and the update-available balloon
+> as soon as the repository has a [GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
+> with a semantic version tag (`v1.1.0`).
+> The included GitHub Actions workflow (`.github/workflows/release.yaml`) creates a
+> release automatically whenever you push a tag:
+> ```bash
+> git tag v1.1.0
+> git push origin v1.1.0
+> ```
+
 ### Manual installation
 
 1. Copy `tdbu-shade-card.js` to `config/www/tdbu-shade-card/`.
