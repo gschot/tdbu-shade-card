@@ -6,12 +6,16 @@
  * Top beam   : entity value 0 % = beam fully up, 100 % = beam fully down
  * Bottom beam: entity value 0 % = beam fully down, 100 % = beam fully up
  *
+ * Entity modes:
+ *   Dual   : top_entity + bottom_entity  (cover / number / input_number)
+ *   Single : entity  — one cover with position (top beam) and tilt (bottom beam)
+ *
  * Supported entity domains: cover, number, input_number
  */
 (function () {
   'use strict';
 
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const TAG     = 'tdbu-shade-card';
 
   /* ------------------------------------------------------------------ */
@@ -39,12 +43,21 @@
 
     static getStubConfig () {
       return {
+        // --- Option A: single cover entity (position = top beam, tilt = bottom beam)
+        // entity        : 'cover.my_tdbu_shade',
+
+        // --- Option B: separate entity per beam
         top_entity    : 'input_number.shade_top',
         bottom_entity : 'input_number.shade_bottom',
-        name          : 'Window Shade',
-        show_percentages: false,
-        show_controls : false,
-        step          : 5,
+
+        name             : 'Window Shade',
+        show_percentages : false,
+        show_controls    : false,
+        step             : 5,
+
+        // Invert a beam's percentage direction if your integration is reversed:
+        // invert_top   : false,
+        // invert_bottom: false,
       };
     }
 
@@ -55,14 +68,25 @@
     /* ---- Configuration --------------------------------------------- */
 
     setConfig (config) {
-      if (!config.top_entity)    throw new Error('[tdbu-shade-card] top_entity is required');
-      if (!config.bottom_entity) throw new Error('[tdbu-shade-card] bottom_entity is required');
+      const hasSingle = !!config.entity;
+      const hasDual   = !!(config.top_entity && config.bottom_entity);
+      if (!hasSingle && !hasDual) {
+        throw new Error(
+          '[tdbu-shade-card] Provide either "entity" (single cover) ' +
+          'or both "top_entity" and "bottom_entity"'
+        );
+      }
 
       this._config = {
         name             : 'Window Shade',
         show_percentages : false,
         show_controls    : false,
         step             : 5,
+        // Single-entity attribute mapping (override if your integration differs)
+        top_attribute    : 'position',       // reads current_position
+        bottom_attribute : 'tilt_position',  // reads current_tilt_position
+        invert_top       : false,
+        invert_bottom    : false,
         ...config,
       };
 
@@ -83,10 +107,19 @@
     _applyHass () {
       if (!this._config || !this._hass) return;
 
-      const topState    = this._hass.states[this._config.top_entity];
-      const bottomState = this._hass.states[this._config.bottom_entity];
-      const newTop      = this._readVal(topState);
-      const newBottom   = this._readVal(bottomState);
+      let newTop, newBottom;
+
+      if (this._config.entity) {
+        // Single cover entity mode
+        const stateObj = this._hass.states[this._config.entity];
+        [newTop, newBottom] = this._readSingleEntity(stateObj);
+      } else {
+        // Dual entity mode
+        const topState    = this._hass.states[this._config.top_entity];
+        const bottomState = this._hass.states[this._config.bottom_entity];
+        newTop    = this._readPosition(topState,    this._config.invert_top);
+        newBottom = this._readPosition(bottomState, this._config.invert_bottom);
+      }
 
       if (!this._ready) {
         this._top    = newTop;
@@ -109,41 +142,104 @@
       }
     }
 
-    /* ---- Read entity value ------------------------------------------ */
+    /* ---- Read entity values ------------------------------------------ */
 
-    _readVal (stateObj) {
+    /**
+     * Read a numeric 0-100 position from a state object.
+     * Works for cover (current_position attribute), number, and input_number.
+     * @param {object}  stateObj  HA state object
+     * @param {boolean} invert    When true, returns (100 - value)
+     */
+    _readPosition (stateObj, invert = false) {
       if (!stateObj) return 0;
-      // cover entities expose position via attribute
+      let v;
       if (stateObj.attributes && stateObj.attributes.current_position != null) {
-        return Number(stateObj.attributes.current_position);
+        v = Number(stateObj.attributes.current_position);
+      } else {
+        v = parseFloat(stateObj.state);
       }
-      const v = parseFloat(stateObj.state);
-      return isNaN(v) ? 0 : Math.min(100, Math.max(0, v));
+      v = isNaN(v) ? 0 : Math.min(100, Math.max(0, v));
+      return invert ? (100 - v) : v;
     }
 
-    /* ---- Call HA service -------------------------------------------- */
+    /**
+     * Read both beam values from a single cover entity.
+     * Returns [topValue, bottomValue] in internal 0-100 coordinates.
+     */
+    _readSingleEntity (stateObj) {
+      const c = this._config;
+      if (!stateObj) return [0, 0];
 
-    _callService (entityId, value) {
+      const rawTop = (c.top_attribute === 'tilt_position')
+        ? (stateObj.attributes?.current_tilt_position ?? 0)
+        : (stateObj.attributes?.current_position     ?? 0);
+
+      const rawBot = (c.bottom_attribute === 'tilt_position')
+        ? (stateObj.attributes?.current_tilt_position ?? 0)
+        : (stateObj.attributes?.current_position     ?? 0);
+
+      const topVal = Math.min(100, Math.max(0, Number(rawTop)));
+      const botVal = Math.min(100, Math.max(0, Number(rawBot)));
+
+      return [
+        c.invert_top    ? (100 - topVal) : topVal,
+        c.invert_bottom ? (100 - botVal) : botVal,
+      ];
+    }
+
+    /* ---- Send value to Home Assistant --------------------------------- */
+
+    /**
+     * Send an updated beam value to Home Assistant.
+     * @param {'top'|'bottom'} beam         Which beam changed
+     * @param {number}         internalVal  Internal 0-100 value
+     */
+    _sendToHA (beam, internalVal) {
       if (!this._hass) return;
-      const v      = Math.round(value);
-      const domain = entityId.split('.')[0];
+      const c = this._config;
+      const v = Math.round(internalVal);
 
-      if (domain === 'cover') {
-        this._hass.callService('cover', 'set_cover_position', {
-          entity_id: entityId,
-          position : v,
-        });
-      } else if (domain === 'number' || domain === 'input_number') {
-        this._hass.callService(domain, 'set_value', {
-          entity_id: entityId,
-          value    : v,
-        });
+      if (c.entity) {
+        // ---- Single cover entity mode --------------------------------
+        const isBottom = (beam === 'bottom');
+        const attribute = isBottom ? c.bottom_attribute : c.top_attribute;
+        const invert    = isBottom ? c.invert_bottom    : c.invert_top;
+        const haVal     = invert ? (100 - v) : v;
+
+        if (attribute === 'tilt_position') {
+          this._hass.callService('cover', 'set_cover_tilt_position', {
+            entity_id    : c.entity,
+            tilt_position: haVal,
+          });
+        } else {
+          this._hass.callService('cover', 'set_cover_position', {
+            entity_id: c.entity,
+            position : haVal,
+          });
+        }
       } else {
-        // Fallback — try input_number
-        this._hass.callService('input_number', 'set_value', {
-          entity_id: entityId,
-          value    : v,
-        });
+        // ---- Dual entity mode ----------------------------------------
+        const entityId = (beam === 'top') ? c.top_entity : c.bottom_entity;
+        const invert   = (beam === 'top') ? c.invert_top : c.invert_bottom;
+        const haVal    = invert ? (100 - v) : v;
+        const domain   = entityId.split('.')[0];
+
+        if (domain === 'cover') {
+          this._hass.callService('cover', 'set_cover_position', {
+            entity_id: entityId,
+            position : haVal,
+          });
+        } else if (domain === 'number' || domain === 'input_number') {
+          this._hass.callService(domain, 'set_value', {
+            entity_id: entityId,
+            value    : haVal,
+          });
+        } else {
+          this._hass.callService('input_number', 'set_value', {
+            entity_id: entityId,
+            value    : haVal,
+          });
+        }
       }
     }
 
@@ -203,11 +299,11 @@
       if (beam === 'top') {
         this._top = Math.max(0, Math.min(this._top + delta, 100 - this._bottom));
         this._paint(true);
-        this._callService(this._config.top_entity, this._top);
+        this._sendToHA('top', this._top);
       } else {
         this._bottom = Math.max(0, Math.min(this._bottom + delta, 100 - this._top));
         this._paint(true);
-        this._callService(this._config.bottom_entity, this._bottom);
+        this._sendToHA('bottom', this._bottom);
       }
     }
 
@@ -241,12 +337,10 @@
       document.removeEventListener('touchmove', this._onMove);
       document.removeEventListener('touchend',  this._onEnd);
 
-      const entity = this._drag.beam === 'top'
-        ? this._config.top_entity
-        : this._config.bottom_entity;
-      const value  = this._drag.beam === 'top' ? this._top : this._bottom;
+      const beam  = this._drag.beam;
+      const value = (beam === 'top') ? this._top : this._bottom;
 
-      this._callService(entity, value);
+      this._sendToHA(beam, value);
       this._drag = null;
     }
 

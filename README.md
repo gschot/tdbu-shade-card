@@ -15,6 +15,13 @@ A TDBU shade has two independently moveable beams:
 
 The shade fabric occupies the space between the two beams.
 
+The card supports **two entity modes**:
+
+| Mode | When to use |
+|------|-------------|
+| **Dual entities** | Your integration exposes a separate entity per beam (most common) |
+| **Single cover entity** | One cover entity uses `position` for the top beam and `tilt_position` for the bottom beam |
+
 The card shows a scaled window visualization with the two wooden rails and the shade fabric between them. You can **drag** either beam to change its position, use optional **arrow buttons** for precise stepping, and optionally show the **percentage** values on the beams.
 
 ---
@@ -55,40 +62,93 @@ The card shows a scaled window visualization with the two wooden rails and the s
 
 ## Configuration
 
+### Mode A — Dual entities (separate entity per beam)
+
 ```yaml
 type: custom:tdbu-shade-card
-name: Living Room Shade        # optional — card title
+name: Living Room Shade
 top_entity: input_number.shade_top_position
 bottom_entity: input_number.shade_bottom_position
-show_percentages: false        # optional — show % on each beam (default: false)
-show_controls: false           # optional — show ▲/▼ arrow buttons (default: false)
-step: 5                        # optional — % step size for arrow buttons (default: 5)
+show_percentages: false   # optional
+show_controls: false      # optional
+step: 5                   # optional — % per button click
 ```
 
-### Full example
+### Mode B — Single cover entity (position + tilt)
+
+Use this when one cover entity controls both beams via `current_position`
+(top beam) and `current_tilt_position` (bottom beam).
 
 ```yaml
 type: custom:tdbu-shade-card
 name: Office Window
-top_entity: number.office_shade_top
-bottom_entity: number.office_shade_bottom
+entity: cover.my_tdbu_shade
 show_percentages: true
 show_controls: true
 step: 10
 ```
 
+The default attribute mapping is:
+
+| Beam | Reads attribute | Calls service |
+|------|----------------|---------------|
+| Top | `current_position` | `cover.set_cover_position` |
+| Bottom | `current_tilt_position` | `cover.set_cover_tilt_position` |
+
+If your integration uses the **opposite** attribute for a beam, override it:
+
+```yaml
+type: custom:tdbu-shade-card
+entity: cover.my_tdbu_shade
+top_attribute: tilt_position   # default: position
+bottom_attribute: position     # default: tilt_position
+```
+
+### Inversion flags
+
+If your integration reports values in the opposite direction (e.g. `0` means fully
+extended instead of retracted), set the invert flag for that beam:
+
+```yaml
+type: custom:tdbu-shade-card
+top_entity: cover.shade_top
+bottom_entity: cover.shade_bottom
+invert_top: true      # mirrors the top-beam value: stored = 100 - ha_value
+invert_bottom: false
+```
+
+Inversion works in both dual-entity and single-entity mode.
+
+### All configuration options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `entity` | — | Single cover entity (alternative to dual-entity mode) |
+| `top_entity` | — | Entity for the top beam |
+| `bottom_entity` | — | Entity for the bottom beam |
+| `name` | `'Window Shade'` | Card title |
+| `show_percentages` | `false` | Show % label on each beam |
+| `show_controls` | `false` | Show ▲/▼ arrow buttons below the window |
+| `step` | `5` | % step size for arrow buttons |
+| `top_attribute` | `'position'` | Attribute for top beam (`position` or `tilt_position`) — single entity only |
+| `bottom_attribute` | `'tilt_position'` | Attribute for bottom beam — single entity only |
+| `invert_top` | `false` | Invert top beam direction |
+| `invert_bottom` | `false` | Invert bottom beam direction |
+
 ---
 
 ## Entity conventions
 
-The card expects the entity **state** (or `current_position` attribute for `cover` entities) to hold a value in the range **0 – 100 %**.
+The card expects values in the range **0 – 100 %**.
 
-| Entity | Value meaning |
-|--------|---------------|
-| `top_entity` | `0` = beam at top / fully retracted upward · `100` = beam fully down |
-| `bottom_entity` | `0` = beam at bottom / fully retracted downward · `100` = beam fully up |
+| Beam | Value meaning |
+|------|---------------|
+| Top beam | `0` = beam at top / fully retracted upward · `100` = beam fully down |
+| Bottom beam | `0` = beam at bottom / fully retracted downward · `100` = beam fully up |
 
-### Supported domains
+> Use `invert_top` / `invert_bottom: true` when your integration reports values in the opposite direction.
+
+### Supported domains (dual-entity mode)
 
 | Domain | Service called |
 |--------|---------------|
@@ -96,8 +156,12 @@ The card expects the entity **state** (or `current_position` attribute for `cove
 | `number` | `number.set_value` with `value:` |
 | `input_number` | `input_number.set_value` with `value:` |
 
-If your integration uses a different domain or inverted values, create a
-[Template Number](https://www.home-assistant.io/integrations/template/#number) entity to adapt the values before passing them to this card.
+### Services called (single-entity mode)
+
+| Attribute wins | Service called |
+|----------------|---------------|
+| `position` | `cover.set_cover_position` with `position:` |
+| `tilt_position` | `cover.set_cover_tilt_position` with `tilt_position:` |
 
 ---
 
@@ -128,7 +192,10 @@ If your integration uses a different domain or inverted values, create a
 - Animated transitions for external state updates
 - Arrow-button controls with configurable step
 - Percentage labels on beams
-- Support for `cover`, `number`, `input_number` entities
+- Support for dual entities: `cover`, `number`, `input_number`
+- Support for single cover entity using `position` (top) + `tilt_position` (bottom)
+- Per-beam inversion flags (`invert_top`, `invert_bottom`)
+- Configurable attribute mapping for single-entity mode (`top_attribute`, `bottom_attribute`)
 
 ---
 
