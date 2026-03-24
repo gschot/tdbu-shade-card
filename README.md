@@ -57,8 +57,8 @@ The card shows a scaled window visualization with the two wooden rails and the s
 > The included GitHub Actions workflow (`.github/workflows/release.yaml`) creates a
 > release automatically whenever you push a tag:
 > ```bash
-> git tag v1.2.4
-> git push origin v1.2.4
+> git tag v1.2.5
+> git push origin v1.2.5
 > ```
 
 ### Manual installation
@@ -196,6 +196,9 @@ The card expects values in the range **0 – 100 %**.
 ---
 
 ## Changelog
+
+### v1.2.5
+- Fixed missing `Register` block and IIFE closure (`})()`) that were accidentally dropped during the v1.2.4 editor rewrite — the card and editor were not registered in HA in that build
 
 ### v1.2.4
 - Completely rewrote the card editor UI to build all elements programmatically via `document.createElement` instead of via `innerHTML` strings
