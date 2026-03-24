@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.1.0';
+  const VERSION = '1.2.0';
   const TAG     = 'tdbu-shade-card';
 
   /* ------------------------------------------------------------------ */
@@ -59,6 +59,10 @@
         // invert_top   : false,
         // invert_bottom: false,
       };
+    }
+
+    static getConfigElement () {
+      return document.createElement('tdbu-shade-card-editor');
     }
 
     getCardSize () {
@@ -631,8 +635,302 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /*  Editor class                                                        */
+  /* ------------------------------------------------------------------ */
+
+  const EDITOR_TAG = 'tdbu-shade-card-editor';
+
+  class TDBUShadeCardEditor extends HTMLElement {
+    constructor () {
+      super();
+      this.attachShadow({ mode: 'open' });
+      this._config = {};
+      this._hass   = null;
+    }
+
+    setConfig (config) {
+      this._config = { ...config };
+      this._render();
+    }
+
+    set hass (hass) {
+      this._hass = hass;
+      // Push hass down to entity pickers that are already in the DOM
+      for (const id of ['entity', 'top_entity', 'bottom_entity']) {
+        const el = this.shadowRoot.getElementById(id);
+        if (el) el.hass = hass;
+      }
+    }
+
+    /* ---- Fire config-changed event ----------------------------------- */
+
+    _fire () {
+      this.dispatchEvent(new CustomEvent('config-changed', {
+        detail  : { config: { ...this._config } },
+        bubbles : true,
+        composed: true,
+      }));
+    }
+
+    _update (patch) {
+      this._config = { ...this._config, ...patch };
+      this._fire();
+    }
+
+    /* ---- Render ------------------------------------------------------ */
+
+    _render () {
+      const c    = this._config;
+      const mode = c.entity ? 'single' : 'dual';
+
+      this.shadowRoot.innerHTML = `
+        <style>
+          :host { display: block; }
+
+          .form {
+            display       : flex;
+            flex-direction: column;
+            gap           : 16px;
+            padding       : 4px 0;
+          }
+
+          .section {
+            font-size     : 0.75em;
+            font-weight   : 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color         : var(--secondary-text-color);
+            border-bottom : 1px solid var(--divider-color, #e0e0e0);
+            padding-bottom: 4px;
+            margin-top    : 4px;
+          }
+
+          .row-inline {
+            display        : flex;
+            align-items    : center;
+            justify-content: space-between;
+            padding        : 2px 0;
+          }
+
+          .row-inline > label {
+            font-size: 0.9em;
+            color    : var(--primary-text-color);
+          }
+
+          ha-textfield,
+          ha-select,
+          ha-entity-picker { display: block; width: 100%; }
+
+          .hidden { display: none !important; }
+        </style>
+
+        <div class="form">
+
+          <div class="section">General</div>
+
+          <ha-textfield
+            id          ="name"
+            label       ="Card Title"
+            placeholder ="Window Shade"
+          ></ha-textfield>
+
+          <div class="section">Entity Mode</div>
+
+          <ha-select id="mode" label="Mode">
+            <mwc-list-item value="dual">Dual entities (separate top / bottom)</mwc-list-item>
+            <mwc-list-item value="single">Single cover entity</mwc-list-item>
+          </ha-select>
+
+          <!-- ── Dual-entity fields ───────────────────────────────────── -->
+          <div id="dual-fields" class="${mode === 'dual' ? '' : 'hidden'}">
+            <ha-entity-picker
+              id                 ="top_entity"
+              label              ="Top Beam Entity"
+              allow-custom-entity
+            ></ha-entity-picker>
+
+            <br>
+
+            <ha-entity-picker
+              id                 ="bottom_entity"
+              label              ="Bottom Beam Entity"
+              allow-custom-entity
+            ></ha-entity-picker>
+          </div>
+
+          <!-- ── Single-entity fields ─────────────────────────────────── -->
+          <div id="single-fields" class="${mode === 'single' ? '' : 'hidden'}">
+            <ha-entity-picker
+              id                 ="entity"
+              label              ="Cover Entity"
+              allow-custom-entity
+            ></ha-entity-picker>
+
+            <br>
+
+            <ha-select id="top_attribute" label="Top Beam Attribute">
+              <mwc-list-item value="position">Position (current_position)</mwc-list-item>
+              <mwc-list-item value="tilt_position">Tilt (current_tilt_position)</mwc-list-item>
+            </ha-select>
+
+            <br>
+
+            <ha-select id="bottom_attribute" label="Bottom Beam Attribute">
+              <mwc-list-item value="position">Position (current_position)</mwc-list-item>
+              <mwc-list-item value="tilt_position">Tilt (current_tilt_position)</mwc-list-item>
+            </ha-select>
+          </div>
+
+          <div class="section">Display</div>
+
+          <div class="row-inline">
+            <label>Show percentages on beams</label>
+            <ha-switch id="show_percentages"></ha-switch>
+          </div>
+
+          <div class="row-inline">
+            <label>Show arrow controls</label>
+            <ha-switch id="show_controls"></ha-switch>
+          </div>
+
+          <ha-textfield
+            id   ="step"
+            label="Step size for arrow controls"
+            type ="number"
+            min  ="1"
+            max  ="50"
+          ></ha-textfield>
+
+          <div class="section">Direction</div>
+
+          <div class="row-inline">
+            <label>Invert top beam direction</label>
+            <ha-switch id="invert_top"></ha-switch>
+          </div>
+
+          <div class="row-inline">
+            <label>Invert bottom beam direction</label>
+            <ha-switch id="invert_bottom"></ha-switch>
+          </div>
+
+        </div>
+      `;
+
+      this._applyValues();
+      this._wireEditor();
+    }
+
+    /* ---- Set element properties after innerHTML ---------------------- */
+
+    _applyValues () {
+      const c  = this._config;
+      const sr = this.shadowRoot;
+
+      // Text fields (value attribute is enough for ha-textfield)
+      const nameEl = sr.getElementById('name');
+      if (nameEl) nameEl.value = c.name ?? 'Window Shade';
+
+      const stepEl = sr.getElementById('step');
+      if (stepEl) stepEl.value = String(c.step ?? 5);
+
+      // Entity pickers — must be set as JS properties
+      for (const id of ['entity', 'top_entity', 'bottom_entity']) {
+        const el = sr.getElementById(id);
+        if (el) {
+          if (this._hass) el.hass = this._hass;
+          el.value = c[id] ?? '';
+        }
+      }
+
+      // Switches
+      for (const id of ['show_percentages', 'show_controls', 'invert_top', 'invert_bottom']) {
+        const el = sr.getElementById(id);
+        if (el) el.checked = !!c[id];
+      }
+
+      // Selects — use requestAnimationFrame so mwc-list-items are upgraded first
+      requestAnimationFrame(() => {
+        const mode = c.entity ? 'single' : 'dual';
+        const modeEl = sr.getElementById('mode');
+        if (modeEl) modeEl.value = mode;
+
+        const topAttr = sr.getElementById('top_attribute');
+        if (topAttr) topAttr.value = c.top_attribute ?? 'position';
+
+        const botAttr = sr.getElementById('bottom_attribute');
+        if (botAttr) botAttr.value = c.bottom_attribute ?? 'tilt_position';
+      });
+    }
+
+    /* ---- Attach editor event listeners ------------------------------- */
+
+    _wireEditor () {
+      const sr = this.shadowRoot;
+
+      // Card title
+      sr.getElementById('name')?.addEventListener('change', e => {
+        this._update({ name: e.target.value.trim() || 'Window Shade' });
+      });
+
+      // Entity mode selector
+      sr.getElementById('mode')?.addEventListener('selected', e => {
+        const val = e.detail?.value ?? sr.getElementById('mode')?.value;
+        if (!val) return;
+
+        const next = { ...this._config };
+        if (val === 'single') {
+          delete next.top_entity;
+          delete next.bottom_entity;
+          if (!next.entity)             next.entity            = '';
+          if (!next.top_attribute)      next.top_attribute     = 'position';
+          if (!next.bottom_attribute)   next.bottom_attribute  = 'tilt_position';
+        } else {
+          delete next.entity;
+          delete next.top_attribute;
+          delete next.bottom_attribute;
+        }
+        this._config = next;
+        this._fire();
+        this._render();
+      });
+
+      // Entity pickers
+      for (const id of ['entity', 'top_entity', 'bottom_entity']) {
+        sr.getElementById(id)?.addEventListener('value-changed', e => {
+          this._update({ [id]: e.detail.value });
+        });
+      }
+
+      // Attribute selects (single-entity mode)
+      for (const id of ['top_attribute', 'bottom_attribute']) {
+        sr.getElementById(id)?.addEventListener('selected', e => {
+          const val = e.detail?.value ?? sr.getElementById(id)?.value;
+          if (val) this._update({ [id]: val });
+        });
+      }
+
+      // Step size
+      sr.getElementById('step')?.addEventListener('change', e => {
+        const v = parseInt(e.target.value, 10);
+        if (!isNaN(v) && v >= 1) this._update({ step: v });
+      });
+
+      // Boolean toggles
+      for (const id of ['show_percentages', 'show_controls', 'invert_top', 'invert_bottom']) {
+        sr.getElementById(id)?.addEventListener('change', e => {
+          this._update({ [id]: e.target.checked });
+        });
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
   /*  Register                                                            */
   /* ------------------------------------------------------------------ */
+
+  if (!customElements.get(EDITOR_TAG)) {
+    customElements.define(EDITOR_TAG, TDBUShadeCardEditor);
+  }
 
   if (!customElements.get(TAG)) {
     customElements.define(TAG, TDBUShadeCard);
