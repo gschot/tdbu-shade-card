@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.3.1';
+  const VERSION = '1.4.0';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
@@ -134,6 +134,14 @@
       'editor.direction'         : 'Direction',
       'editor.invert_top'        : 'Invert top beam direction',
       'editor.invert_bottom'     : 'Invert bottom beam direction',
+      'editor.mode_hybrid'         : 'Hybrid<br>(split control / state)',
+      'editor.control_entities'    : 'Control Entities',
+      'editor.state_entities'      : 'State Entities',
+      'editor.state_entity'        : 'State Entity (single)',
+      'editor.top_state_entity'    : 'Top Beam State Entity',
+      'editor.bottom_state_entity' : 'Bottom Beam State Entity',
+      'editor.sub_single'          : 'Single',
+      'editor.sub_dual'            : 'Dual',
       // ── Theme labels ─────────────────────────────────────────────────
       'theme.wood'   : '🪵 Natural Wood',
       'theme.modern' : '🤍 Modern White',
@@ -178,6 +186,14 @@
       'editor.direction'         : 'Richting',
       'editor.invert_top'        : 'Richting bovenste rail omkeren',
       'editor.invert_bottom'     : 'Richting onderste rail omkeren',
+      'editor.mode_hybrid'         : 'Hybride<br>(gesplitst besturen/status)',
+      'editor.control_entities'    : 'Besturingsentiteiten',
+      'editor.state_entities'      : 'Statusentiteiten',
+      'editor.state_entity'        : 'Statusentiteit (enkel)',
+      'editor.top_state_entity'    : 'Statusentiteit bovenste rail',
+      'editor.bottom_state_entity' : 'Statusentiteit onderste rail',
+      'editor.sub_single'          : 'Enkel',
+      'editor.sub_dual'            : 'Dubbel',
       // ── Thema-labels ─────────────────────────────────────────────────
       'theme.wood'   : '🪵 Natuurlijk hout',
       'theme.modern' : '🤍 Modern wit',
@@ -229,6 +245,19 @@
         // --- Option B: separate entity per beam
         top_entity    : 'input_number.shade_top',
         bottom_entity : 'input_number.shade_bottom',
+
+        // --- Option C: hybrid — separate entities for control vs. state feedback
+        // Control (sends commands):
+        //   top_entity      : 'input_number.shade_top',
+        //   bottom_entity   : 'input_number.shade_bottom',
+        //     OR
+        //   entity          : 'cover.my_tdbu_shade',
+        //
+        // State (reads position — can be different entities):
+        //   top_state_entity    : 'sensor.shade_top_position',
+        //   bottom_state_entity : 'sensor.shade_bottom_position',
+        //     OR
+        //   state_entity        : 'cover.my_tdbu_shade_feedback',
 
         name             : 'Window Shade',
         show_percentages : false,
@@ -297,19 +326,7 @@
     _applyHass () {
       if (!this._config || !this._hass) return;
 
-      let newTop, newBottom;
-
-      if (this._config.entity) {
-        // Single cover entity mode
-        const stateObj = this._hass.states[this._config.entity];
-        [newTop, newBottom] = this._readSingleEntity(stateObj);
-      } else {
-        // Dual entity mode
-        const topState    = this._hass.states[this._config.top_entity];
-        const bottomState = this._hass.states[this._config.bottom_entity];
-        newTop    = this._readPosition(topState,    this._config.invert_top);
-        newBottom = this._readPosition(bottomState, this._config.invert_bottom);
-      }
+      const [newTop, newBottom] = this._readState();
 
       if (!this._ready) {
         this._top    = newTop;
@@ -330,6 +347,60 @@
           this._paint(true);
         }
       }
+    }
+
+    /* ---- Read state (with optional hybrid overrides) ----------------- */
+
+    /**
+     * Return [topVal, bottomVal] by reading from state entities when configured
+     * (hybrid mode), otherwise falling back to the control entities.
+     *
+     * State entity precedence (per beam):
+     *   1. top_state_entity / bottom_state_entity  — individual dual sensors
+     *   2. state_entity                            — single cover/sensor for both beams
+     *   3. control entity/entities                 — existing behaviour (non-hybrid)
+     */
+    _readState () {
+      const c = this._config;
+      const h = this._hass;
+      const hasStateOverride = !!(c.state_entity || c.top_state_entity || c.bottom_state_entity);
+
+      if (hasStateOverride) {
+        // ── Top beam ──────────────────────────────────────────────────
+        let topVal;
+        if (c.top_state_entity) {
+          topVal = this._readPosition(h.states[c.top_state_entity], c.invert_top);
+        } else if (c.state_entity) {
+          [topVal] = this._readSingleEntity(h.states[c.state_entity]);
+        } else if (c.entity) {
+          [topVal] = this._readSingleEntity(h.states[c.entity]);
+        } else {
+          topVal = this._readPosition(h.states[c.top_entity], c.invert_top);
+        }
+
+        // ── Bottom beam ───────────────────────────────────────────────
+        let botVal;
+        if (c.bottom_state_entity) {
+          botVal = this._readPosition(h.states[c.bottom_state_entity], c.invert_bottom);
+        } else if (c.state_entity) {
+          [, botVal] = this._readSingleEntity(h.states[c.state_entity]);
+        } else if (c.entity) {
+          [, botVal] = this._readSingleEntity(h.states[c.entity]);
+        } else {
+          botVal = this._readPosition(h.states[c.bottom_entity], c.invert_bottom);
+        }
+
+        return [topVal ?? 0, botVal ?? 0];
+      }
+
+      // ── Non-hybrid: state == control entities (original behaviour) ──
+      if (c.entity) {
+        return this._readSingleEntity(h.states[c.entity]);
+      }
+      return [
+        this._readPosition(h.states[c.top_entity],    c.invert_top),
+        this._readPosition(h.states[c.bottom_entity], c.invert_bottom),
+      ];
     }
 
     /* ---- Read entity values ------------------------------------------ */
@@ -1109,6 +1180,26 @@
       return row;
     }
 
+    /* ---- Sub-tabs (smaller variant for use inside sections) ---------- */
+
+    /**
+     * @param {Array<[string, string]>} items    [[value, label], ...]
+     * @param {string}                  active   Currently active value
+     * @param {function}                onChange Called with the new value when a tab is clicked
+     */
+    _makeSubTabs (items, active, onChange) {
+      const wrap = document.createElement('div');
+      wrap.className = 'sub-tabs';
+      items.forEach(([val, label]) => {
+        const btn       = document.createElement('button');
+        btn.className   = 'sub-tab' + (active === val ? ' active' : '');
+        btn.textContent = label;
+        btn.addEventListener('click', () => { if (active !== val) onChange(val); });
+        wrap.appendChild(btn);
+      });
+      return wrap;
+    }
+
     /* ---- Section heading --------------------------------------------- */
 
     _makeSection (title) {
@@ -1122,7 +1213,13 @@
 
     _render () {
       const c    = this._config;
-      const mode = ('entity' in c) ? 'single' : 'dual';
+      // Mode detection:
+      //   hybrid  — state entities are explicitly configured (separate from control)
+      //   single  — one cover entity handles both control and state
+      //   dual    — two entities handle both control and state
+      const mode = (c.state_entity !== undefined || c.top_state_entity !== undefined || c.bottom_state_entity !== undefined)
+        ? 'hybrid'
+        : (('entity' in c) ? 'single' : 'dual');
       const sr   = this.shadowRoot;
 
       sr.innerHTML = `<style>
@@ -1145,6 +1242,17 @@
         .mode-tab + .mode-tab { border-left: 1px solid var(--divider-color, #ccc); }
         .mode-tab.active { background: var(--primary-color, #03a9f4); color: #fff; font-weight: 600; }
         .mode-tab:hover:not(.active) { background: var(--secondary-background-color, #f0f0f0); }
+        /* Sub-tabs (control/state within hybrid mode) */
+        .sub-tabs { display: flex; border: 1px solid var(--divider-color, #ccc); border-radius: 4px; overflow: hidden; margin-top: 2px; }
+        .sub-tab {
+          flex: 1; padding: 6px 4px; border: none; background: transparent;
+          cursor: pointer; font-size: 0.78em; font-family: inherit;
+          color: var(--secondary-text-color);
+          transition: background 0.15s, color 0.15s;
+        }
+        .sub-tab + .sub-tab { border-left: 1px solid var(--divider-color, #ccc); }
+        .sub-tab.active { background: var(--accent-color, var(--primary-color, #03a9f4)); color: #fff; font-weight: 600; opacity: 0.85; }
+        .sub-tab:hover:not(.active) { background: var(--secondary-background-color, #f0f0f0); }
         /* Field rows */
         .field-row { display: flex; flex-direction: column; gap: 4px; }
         .field-label { font-size: 0.78em; color: var(--secondary-text-color); padding-left: 2px; }
@@ -1194,21 +1302,47 @@
       form.appendChild(this._makeSection(this._t('editor.entity_mode')));
       const tabs = document.createElement('div');
       tabs.className = 'mode-tabs';
-      [['dual', this._t('editor.mode_dual')], ['single', this._t('editor.mode_single')]].forEach(([val, html]) => {
+      [
+        ['dual',   this._t('editor.mode_dual')],
+        ['single', this._t('editor.mode_single')],
+        ['hybrid', this._t('editor.mode_hybrid')],
+      ].forEach(([val, html]) => {
         const btn        = document.createElement('button');
         btn.className    = 'mode-tab' + (mode === val ? ' active' : '');
         btn.dataset.mode = val;
         btn.innerHTML    = html;
         btn.addEventListener('click', () => {
-          if (val === (('entity' in this._config) ? 'single' : 'dual')) return;
+          const currentMode = (this._config.state_entity !== undefined ||
+                               this._config.top_state_entity !== undefined ||
+                               this._config.bottom_state_entity !== undefined)
+            ? 'hybrid'
+            : (('entity' in this._config) ? 'single' : 'dual');
+          if (val === currentMode) return;
           const next = { ...this._config };
+          // Strip all entity-related keys; rebuild for chosen mode
+          delete next.entity; delete next.top_entity; delete next.bottom_entity;
+          delete next.top_attribute; delete next.bottom_attribute;
+          delete next.state_entity; delete next.top_state_entity; delete next.bottom_state_entity;
           if (val === 'single') {
-            delete next.top_entity; delete next.bottom_entity;
-            next.entity           = next.entity           ?? '';
-            next.top_attribute    = next.top_attribute    ?? 'position';
-            next.bottom_attribute = next.bottom_attribute ?? 'tilt_position';
+            next.entity           = this._config.entity           ?? '';
+            next.top_attribute    = this._config.top_attribute    ?? 'position';
+            next.bottom_attribute = this._config.bottom_attribute ?? 'tilt_position';
+          } else if (val === 'dual') {
+            next.top_entity    = this._config.top_entity    ?? '';
+            next.bottom_entity = this._config.bottom_entity ?? '';
           } else {
-            delete next.entity; delete next.top_attribute; delete next.bottom_attribute;
+            // hybrid — restore control entities, add empty state entities
+            if ('entity' in this._config || currentMode === 'single') {
+              next.entity           = this._config.entity           ?? '';
+              next.top_attribute    = this._config.top_attribute    ?? 'position';
+              next.bottom_attribute = this._config.bottom_attribute ?? 'tilt_position';
+              next.state_entity     = '';
+            } else {
+              next.top_entity          = this._config.top_entity    ?? '';
+              next.bottom_entity       = this._config.bottom_entity ?? '';
+              next.top_state_entity    = '';
+              next.bottom_state_entity = '';
+            }
           }
           this._config = next; this._fire(); this._render();
         });
@@ -1222,7 +1356,7 @@
           ['cover', 'number', 'input_number'], c.top_entity));
         form.appendChild(this._makePickerRow('bottom_entity', this._t('editor.bottom_entity'),
           ['cover', 'number', 'input_number'], c.bottom_entity));
-      } else {
+      } else if (mode === 'single') {
         form.appendChild(this._makePickerRow('entity', this._t('editor.cover_entity'), ['cover'], c.entity));
         form.appendChild(this._makeSelectRow('top_attribute', this._t('editor.top_attribute'),
           [['position',      this._t('editor.attr_position')],
@@ -1232,6 +1366,77 @@
           [['position',      this._t('editor.attr_position')],
            ['tilt_position', this._t('editor.attr_tilt')]],
           c.bottom_attribute ?? 'tilt_position'));
+      } else {
+        // ── Hybrid mode ───────────────────────────────────────────────
+        const ctrlMode  = ('entity' in c) ? 'single' : 'dual';
+        const stateMode = ('state_entity' in c) ? 'single' : 'dual';
+
+        // — Control sub-section —
+        form.appendChild(this._makeSection(this._t('editor.control_entities')));
+        form.appendChild(this._makeSubTabs(
+          [['single', this._t('editor.sub_single')], ['dual', this._t('editor.sub_dual')]],
+          ctrlMode,
+          (newCtrl) => {
+            const next = { ...this._config };
+            if (newCtrl === 'single') {
+              delete next.top_entity; delete next.bottom_entity;
+              next.entity           = next.entity           ?? '';
+              next.top_attribute    = next.top_attribute    ?? 'position';
+              next.bottom_attribute = next.bottom_attribute ?? 'tilt_position';
+            } else {
+              delete next.entity; delete next.top_attribute; delete next.bottom_attribute;
+              next.top_entity    = next.top_entity    ?? '';
+              next.bottom_entity = next.bottom_entity ?? '';
+            }
+            this._config = next; this._fire(); this._render();
+          },
+        ));
+
+        if (ctrlMode === 'single') {
+          form.appendChild(this._makePickerRow('entity', this._t('editor.cover_entity'), ['cover'], c.entity));
+          form.appendChild(this._makeSelectRow('top_attribute', this._t('editor.top_attribute'),
+            [['position',      this._t('editor.attr_position')],
+             ['tilt_position', this._t('editor.attr_tilt')]],
+            c.top_attribute ?? 'position'));
+          form.appendChild(this._makeSelectRow('bottom_attribute', this._t('editor.bottom_attribute'),
+            [['position',      this._t('editor.attr_position')],
+             ['tilt_position', this._t('editor.attr_tilt')]],
+            c.bottom_attribute ?? 'tilt_position'));
+        } else {
+          form.appendChild(this._makePickerRow('top_entity',    this._t('editor.top_entity'),
+            ['cover', 'number', 'input_number'], c.top_entity));
+          form.appendChild(this._makePickerRow('bottom_entity', this._t('editor.bottom_entity'),
+            ['cover', 'number', 'input_number'], c.bottom_entity));
+        }
+
+        // — State sub-section —
+        form.appendChild(this._makeSection(this._t('editor.state_entities')));
+        form.appendChild(this._makeSubTabs(
+          [['single', this._t('editor.sub_single')], ['dual', this._t('editor.sub_dual')]],
+          stateMode,
+          (newState) => {
+            const next = { ...this._config };
+            if (newState === 'single') {
+              delete next.top_state_entity; delete next.bottom_state_entity;
+              next.state_entity = next.state_entity ?? '';
+            } else {
+              delete next.state_entity;
+              next.top_state_entity    = next.top_state_entity    ?? '';
+              next.bottom_state_entity = next.bottom_state_entity ?? '';
+            }
+            this._config = next; this._fire(); this._render();
+          },
+        ));
+
+        if (stateMode === 'single') {
+          form.appendChild(this._makePickerRow('state_entity', this._t('editor.state_entity'),
+            ['cover', 'number', 'input_number', 'sensor'], c.state_entity));
+        } else {
+          form.appendChild(this._makePickerRow('top_state_entity', this._t('editor.top_state_entity'),
+            ['cover', 'number', 'input_number', 'sensor'], c.top_state_entity));
+          form.appendChild(this._makePickerRow('bottom_state_entity', this._t('editor.bottom_state_entity'),
+            ['cover', 'number', 'input_number', 'sensor'], c.bottom_state_entity));
+        }
       }
 
       // ── Display ───────────────────────────────────────────────────────
