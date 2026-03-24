@@ -1,6 +1,6 @@
 {
   "name": "TDBU Shade Card",
-  "render_readme": false,
+  "render_readme": true,
   "homeassistant": "2023.1.0",
   "filename": "tdbu-shade-card.js"
 }
