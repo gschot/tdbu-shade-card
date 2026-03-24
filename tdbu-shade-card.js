@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.2.6';
+  const VERSION = '1.2.7';
   const TAG     = 'tdbu-shade-card';
 
   /* ------------------------------------------------------------------ */
@@ -128,8 +128,8 @@
       if (!this._ready) {
         this._top    = newTop;
         this._bottom = newBottom;
+        this._ready  = true;    // must be true before _renderCard so _paint() doesn't bail out
         this._renderCard();
-        this._ready = true;
         return;
       }
 

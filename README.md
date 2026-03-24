@@ -57,8 +57,8 @@ The card shows a scaled window visualization with the two wooden rails and the s
 > The included GitHub Actions workflow (`.github/workflows/release.yaml`) creates a
 > release automatically whenever you push a tag:
 > ```bash
-> git tag v1.2.6
-> git push origin v1.2.6
+> git tag v1.2.7
+> git push origin v1.2.7
 > ```
 
 ### Manual installation
@@ -196,6 +196,9 @@ The card expects values in the range **0 – 100 %**.
 ---
 
 ## Changelog
+
+### v1.2.7
+- Fixed card always showing fully-open state on load: `_ready` was set to `true` **after** `_renderCard()` returned, but `_paint()` guards on `_ready` and bailed out immediately — leaving beams at default position. Fix: `_ready = true` is now set before `_renderCard()` so the initial paint executes correctly.
 
 ### v1.2.6
 - Replaced `ha-entity-picker` with a native `<input type="text">` + `<datalist>` for entity selection — guarantees the picker always renders regardless of HA load order or Lit upgrade timing
