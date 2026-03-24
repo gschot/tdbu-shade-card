@@ -57,8 +57,8 @@ The card shows a scaled window visualization with the two wooden rails and the s
 > The included GitHub Actions workflow (`.github/workflows/release.yaml`) creates a
 > release automatically whenever you push a tag:
 > ```bash
-> git tag v1.3.0
-> git push origin v1.3.0
+> git tag v1.3.1
+> git push origin v1.3.1
 > ```
 
 ### Manual installation
@@ -196,6 +196,11 @@ The card expects values in the range **0 – 100 %**.
 ---
 
 ## Changelog
+
+### v1.3.1
+- **Multi-language support** — all card UI strings (beam labels, aria-labels, trigger summary) and all editor UI strings (section headers, field labels, mode tabs, theme names) are now translated at runtime using Home Assistant's active language (`hass.language`)
+- Supported languages: **English** (`en`) and **Dutch** (`nl`). Adding more languages requires only a new entry in the `TRANSLATIONS` constant.
+- Falls back to English for unsupported languages or missing keys
 
 ### v1.3.0
 - **Visual Themes** — choose from four built-in styles via `theme:` config or the UI editor:

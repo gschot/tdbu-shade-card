@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.3.0';
+  const VERSION = '1.3.1';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
@@ -86,6 +86,117 @@
         --t-fab-sh:  0 -3px 8px rgba(0,0,0,.60),0 3px 8px rgba(0,0,0,.60);`,
     },
   };
+
+  /* ------------------------------------------------------------------ */
+  /*  Translations                                                        */
+  /* ------------------------------------------------------------------ */
+  /*
+   * Add a new language by copying the 'en' block and translating the values.
+   * The key format is <scope>.<id>. Scope 'ui' = card runtime, 'editor' = config UI.
+   * HA exposes the active language via hass.language (BCP-47, e.g. 'en', 'nl', 'de').
+   */
+  const TRANSLATIONS = {
+    en: {
+      // ── Card runtime ─────────────────────────────────────────────────
+      'ui.default_name'  : 'Window Shade',
+      'ui.top_beam'      : 'Top Beam',
+      'ui.bottom_beam'   : 'Bottom Beam',
+      'ui.top_up'        : 'Top beam up',
+      'ui.top_down'      : 'Top beam down',
+      'ui.bot_up'        : 'Bottom beam up',
+      'ui.bot_down'      : 'Bottom beam down',
+      'ui.close'         : 'Close',
+      'ui.open'          : 'Open',
+      'ui.top_summary'   : 'Top',
+      'ui.bottom_summary': 'Bottom',
+      // ── Card editor ──────────────────────────────────────────────────
+      'editor.general'           : 'General',
+      'editor.card_title'        : 'Card Title',
+      'editor.entity_mode'       : 'Entity Mode',
+      'editor.mode_dual'         : 'Dual entities<br>(top + bottom)',
+      'editor.mode_single'       : 'Single cover<br>entity',
+      'editor.top_entity'        : 'Top Beam Entity',
+      'editor.bottom_entity'     : 'Bottom Beam Entity',
+      'editor.cover_entity'      : 'Cover Entity',
+      'editor.top_attribute'     : 'Top Beam Attribute',
+      'editor.bottom_attribute'  : 'Bottom Beam Attribute',
+      'editor.attr_position'     : 'position (current_position)',
+      'editor.attr_tilt'         : 'tilt_position (current_tilt_position)',
+      'editor.display'           : 'Display',
+      'editor.show_percentages'  : 'Show percentages on beams',
+      'editor.show_controls'     : 'Show arrow controls',
+      'editor.step'              : 'Step size for arrow controls (%)',
+      'editor.appearance'        : 'Appearance',
+      'editor.theme'             : 'Visual Theme',
+      'editor.card_height'       : 'Window height (px, leave empty for auto)',
+      'editor.popup_mode'        : 'Pop-up Mode',
+      'editor.popup'             : 'Show as pop-up overlay (triggered by button in card)',
+      'editor.direction'         : 'Direction',
+      'editor.invert_top'        : 'Invert top beam direction',
+      'editor.invert_bottom'     : 'Invert bottom beam direction',
+      // ── Theme labels ─────────────────────────────────────────────────
+      'theme.wood'   : '🪵 Natural Wood',
+      'theme.modern' : '🤍 Modern White',
+      'theme.minimal': '⬜ Minimal',
+      'theme.dark'   : '🌑 Dark',
+    },
+    nl: {
+      // ── Kaartweergave ────────────────────────────────────────────────
+      'ui.default_name'  : 'Raamdoek',
+      'ui.top_beam'      : 'Bovenste rail',
+      'ui.bottom_beam'   : 'Onderste rail',
+      'ui.top_up'        : 'Bovenste rail omhoog',
+      'ui.top_down'      : 'Bovenste rail omlaag',
+      'ui.bot_up'        : 'Onderste rail omhoog',
+      'ui.bot_down'      : 'Onderste rail omlaag',
+      'ui.close'         : 'Sluiten',
+      'ui.open'          : 'Openen',
+      'ui.top_summary'   : 'Boven',
+      'ui.bottom_summary': 'Onder',
+      // ── Kaarteditor ──────────────────────────────────────────────────
+      'editor.general'           : 'Algemeen',
+      'editor.card_title'        : 'Kaarttitel',
+      'editor.entity_mode'       : 'Entiteitsmodus',
+      'editor.mode_dual'         : 'Twee entiteiten<br>(boven + onder)',
+      'editor.mode_single'       : 'Enkele cover-<br>entiteit',
+      'editor.top_entity'        : 'Entiteit bovenste rail',
+      'editor.bottom_entity'     : 'Entiteit onderste rail',
+      'editor.cover_entity'      : 'Cover-entiteit',
+      'editor.top_attribute'     : 'Attribuut bovenste rail',
+      'editor.bottom_attribute'  : 'Attribuut onderste rail',
+      'editor.attr_position'     : 'position (current_position)',
+      'editor.attr_tilt'         : 'tilt_position (current_tilt_position)',
+      'editor.display'           : 'Weergave',
+      'editor.show_percentages'  : 'Toon percentages op rails',
+      'editor.show_controls'     : 'Toon pijlknoppen',
+      'editor.step'              : 'Stapgrootte pijlknoppen (%)',
+      'editor.appearance'        : 'Uiterlijk',
+      'editor.theme'             : 'Visueel thema',
+      'editor.card_height'       : 'Vensterhoogte (px, leeg = automatisch)',
+      'editor.popup_mode'        : 'Pop-upvenster',
+      'editor.popup'             : 'Toon als pop-upvenster (geactiveerd via knop in kaart)',
+      'editor.direction'         : 'Richting',
+      'editor.invert_top'        : 'Richting bovenste rail omkeren',
+      'editor.invert_bottom'     : 'Richting onderste rail omkeren',
+      // ── Thema-labels ─────────────────────────────────────────────────
+      'theme.wood'   : '🪵 Natuurlijk hout',
+      'theme.modern' : '🤍 Modern wit',
+      'theme.minimal': '⬜ Minimaal',
+      'theme.dark'   : '🌑 Donker',
+    },
+  };
+
+  /**
+   * Translate a key using the active HA language.
+   * Falls back to English if the language is not supported or the key is missing.
+   * @param {object|null} hass  HA hass object (may be null during initial config)
+   * @param {string}      key   Dot-separated translation key
+   */
+  function t (hass, key) {
+    const lang = hass?.language ?? 'en';
+    const dict = TRANSLATIONS[lang] ?? TRANSLATIONS.en;
+    return dict[key] ?? TRANSLATIONS.en[key] ?? key;
+  }
 
   /* ------------------------------------------------------------------ */
   /*  Card class                                                          */
@@ -368,7 +479,7 @@
 
       // Popup trigger bar summary
       const trigPct = sr.getElementById('trigger-pct');
-      if (trigPct) trigPct.textContent = `Top: ${Math.round(this._top)}%  ·  Bottom: ${Math.round(this._bottom)}%`;
+      if (trigPct) trigPct.textContent = `${this._t('ui.top_summary')}: ${Math.round(this._top)}%  ·  ${this._t('ui.bottom_summary')}: ${Math.round(this._bottom)}%`;
     }
 
     /* ---- Arrow button step ------------------------------------------ */
@@ -651,7 +762,7 @@
         <!-- ═══ Pop-up overlay (hidden until opened) ═══ -->
         <div class="popup-backdrop" id="popup-backdrop">
           <div class="popup-box">
-            <button class="popup-close" id="popup-close" aria-label="Close">✕</button>
+            <button class="popup-close" id="popup-close" aria-label="${this._t('ui.close')}">✕</button>
             ${c.name ? `<div class="popup-title">${this._esc(c.name)}</div>` : ''}
             <div class="shade-window" id="win">
               <div class="fabric" id="fabric"></div>
@@ -661,19 +772,19 @@
             ${sc ? `
             <div class="controls">
               <div class="beam-ctrl">
-                <div class="ctrl-label">Top Beam</div>
+                <div class="ctrl-label">${this._t('ui.top_beam')}</div>
                 <div class="btn-row">
-                  <button class="ctrl-btn" id="top-up"   aria-label="Top beam up">▲</button>
+                  <button class="ctrl-btn" id="top-up"   aria-label="${this._t('ui.top_up')}">▲</button>
                   <span   class="ctrl-pct" id="pct-top"></span>
-                  <button class="ctrl-btn" id="top-down" aria-label="Top beam down">▼</button>
+                  <button class="ctrl-btn" id="top-down" aria-label="${this._t('ui.top_down')}">▼</button>
                 </div>
               </div>
               <div class="beam-ctrl">
-                <div class="ctrl-label">Bottom Beam</div>
+                <div class="ctrl-label">${this._t('ui.bottom_beam')}</div>
                 <div class="btn-row">
-                  <button class="ctrl-btn" id="bot-up"   aria-label="Bottom beam up">▲</button>
+                  <button class="ctrl-btn" id="bot-up"   aria-label="${this._t('ui.bot_up')}">▲</button>
                   <span   class="ctrl-pct" id="pct-bot"></span>
-                  <button class="ctrl-btn" id="bot-down" aria-label="Bottom beam down">▼</button>
+                  <button class="ctrl-btn" id="bot-down" aria-label="${this._t('ui.bot_down')}">▼</button>
                 </div>
               </div>
             </div>` : ''}
@@ -682,11 +793,11 @@
 
         <!-- ═══ Trigger button shown in the card ════ -->
         <ha-card>
-          <button class="popup-trigger" id="popup-open" aria-label="Open ${this._esc(c.name || 'shade')}">
+          <button class="popup-trigger" id="popup-open" aria-label="${this._t('ui.open')} ${this._esc(c.name || this._t('ui.default_name'))}">
             <span class="popup-trigger-icon">🪟</span>
             <span class="popup-trigger-info">
-              <span class="popup-trigger-name">${this._esc(c.name || 'Window Shade')}</span><br>
-              <span class="popup-trigger-pct" id="trigger-pct">Top: —  Bottom: —</span>
+              <span class="popup-trigger-name">${this._esc(c.name || this._t('ui.default_name'))}</span><br>
+              <span class="popup-trigger-pct" id="trigger-pct">${this._t('ui.top_summary')}: —  ${this._t('ui.bottom_summary')}: —</span>
             </span>
           </button>
         </ha-card>
@@ -702,19 +813,19 @@
           ${sc ? `
           <div class="controls">
             <div class="beam-ctrl">
-              <div class="ctrl-label">Top Beam</div>
+              <div class="ctrl-label">${this._t('ui.top_beam')}</div>
               <div class="btn-row">
-                <button class="ctrl-btn" id="top-up"   aria-label="Top beam up">▲</button>
+                <button class="ctrl-btn" id="top-up"   aria-label="${this._t('ui.top_up')}">▲</button>
                 <span   class="ctrl-pct" id="pct-top"></span>
-                <button class="ctrl-btn" id="top-down" aria-label="Top beam down">▼</button>
+                <button class="ctrl-btn" id="top-down" aria-label="${this._t('ui.top_down')}">▼</button>
               </div>
             </div>
             <div class="beam-ctrl">
-              <div class="ctrl-label">Bottom Beam</div>
+              <div class="ctrl-label">${this._t('ui.bottom_beam')}</div>
               <div class="btn-row">
-                <button class="ctrl-btn" id="bot-up"   aria-label="Bottom beam up">▲</button>
+                <button class="ctrl-btn" id="bot-up"   aria-label="${this._t('ui.bot_up')}">▲</button>
                 <span   class="ctrl-pct" id="pct-bot"></span>
-                <button class="ctrl-btn" id="bot-down" aria-label="Bottom beam down">▼</button>
+                <button class="ctrl-btn" id="bot-down" aria-label="${this._t('ui.bot_down')}">▼</button>
               </div>
             </div>
           </div>` : ''}
@@ -792,6 +903,8 @@
       const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
       return String(s).replace(/[&<>"]/g, c => map[c]);
     }
+
+    _t (key) { return t(this._hass, key); }
   }
 
   /* ------------------------------------------------------------------ */
@@ -824,6 +937,8 @@
         this._refreshDataLists();
       }
     }
+
+    _t (key) { return t(this._hass, key); }
 
     _fire () {
       this.dispatchEvent(new CustomEvent('config-changed', {
@@ -1070,16 +1185,16 @@
       form.className = 'form';
 
       // ── General ──────────────────────────────────────────────────────
-      form.appendChild(this._makeSection('General'));
-      form.appendChild(this._makeTextField('name', 'Card Title', 'text',
+      form.appendChild(this._makeSection(this._t('editor.general')));
+      form.appendChild(this._makeTextField('name', this._t('editor.card_title'), 'text',
         c.name ?? 'Window Shade',
         { placeholder: 'Window Shade', fallback: 'Window Shade' }));
 
       // ── Entity Mode ───────────────────────────────────────────────────
-      form.appendChild(this._makeSection('Entity Mode'));
+      form.appendChild(this._makeSection(this._t('editor.entity_mode')));
       const tabs = document.createElement('div');
       tabs.className = 'mode-tabs';
-      [['dual', 'Dual entities<br>(top + bottom)'], ['single', 'Single cover<br>entity']].forEach(([val, html]) => {
+      [['dual', this._t('editor.mode_dual')], ['single', this._t('editor.mode_single')]].forEach(([val, html]) => {
         const btn        = document.createElement('button');
         btn.className    = 'mode-tab' + (mode === val ? ' active' : '');
         btn.dataset.mode = val;
@@ -1103,48 +1218,48 @@
 
       // ── Entity picker(s) ─────────────────────────────────────────────
       if (mode === 'dual') {
-        form.appendChild(this._makePickerRow('top_entity',    'Top Beam Entity',
+        form.appendChild(this._makePickerRow('top_entity',    this._t('editor.top_entity'),
           ['cover', 'number', 'input_number'], c.top_entity));
-        form.appendChild(this._makePickerRow('bottom_entity', 'Bottom Beam Entity',
+        form.appendChild(this._makePickerRow('bottom_entity', this._t('editor.bottom_entity'),
           ['cover', 'number', 'input_number'], c.bottom_entity));
       } else {
-        form.appendChild(this._makePickerRow('entity', 'Cover Entity', ['cover'], c.entity));
-        form.appendChild(this._makeSelectRow('top_attribute', 'Top Beam Attribute',
-          [['position',      'position (current_position)'],
-           ['tilt_position', 'tilt_position (current_tilt_position)']],
+        form.appendChild(this._makePickerRow('entity', this._t('editor.cover_entity'), ['cover'], c.entity));
+        form.appendChild(this._makeSelectRow('top_attribute', this._t('editor.top_attribute'),
+          [['position',      this._t('editor.attr_position')],
+           ['tilt_position', this._t('editor.attr_tilt')]],
           c.top_attribute ?? 'position'));
-        form.appendChild(this._makeSelectRow('bottom_attribute', 'Bottom Beam Attribute',
-          [['position',      'position (current_position)'],
-           ['tilt_position', 'tilt_position (current_tilt_position)']],
+        form.appendChild(this._makeSelectRow('bottom_attribute', this._t('editor.bottom_attribute'),
+          [['position',      this._t('editor.attr_position')],
+           ['tilt_position', this._t('editor.attr_tilt')]],
           c.bottom_attribute ?? 'tilt_position'));
       }
 
       // ── Display ───────────────────────────────────────────────────────
-      form.appendChild(this._makeSection('Display'));
-      form.appendChild(this._makeToggleRow('show_percentages', 'Show percentages on beams', c.show_percentages));
-      form.appendChild(this._makeToggleRow('show_controls',    'Show arrow controls',       c.show_controls));
-      form.appendChild(this._makeTextField('step', 'Step size for arrow controls (%)', 'number',
+      form.appendChild(this._makeSection(this._t('editor.display')));
+      form.appendChild(this._makeToggleRow('show_percentages', this._t('editor.show_percentages'), c.show_percentages));
+      form.appendChild(this._makeToggleRow('show_controls',    this._t('editor.show_controls'),    c.show_controls));
+      form.appendChild(this._makeTextField('step', this._t('editor.step'), 'number',
         c.step ?? 5, { min: 1, max: 50 }));
 
       // ── Appearance ────────────────────────────────────────────────────
-      form.appendChild(this._makeSection('Appearance'));
-      form.appendChild(this._makeSelectRow('theme', 'Visual Theme',
-        [['wood',    '🪵 Natural Wood'],
-         ['modern',  '🤍 Modern White'],
-         ['minimal', '⬜ Minimal'],
-         ['dark',    '🌑 Dark']],
+      form.appendChild(this._makeSection(this._t('editor.appearance')));
+      form.appendChild(this._makeSelectRow('theme', this._t('editor.theme'),
+        [['wood',    this._t('theme.wood')],
+         ['modern',  this._t('theme.modern')],
+         ['minimal', this._t('theme.minimal')],
+         ['dark',    this._t('theme.dark')]],
         c.theme ?? 'wood'));
-      form.appendChild(this._makeTextField('card_height', 'Window height (px, leave empty for auto)', 'number',
+      form.appendChild(this._makeTextField('card_height', this._t('editor.card_height'), 'number',
         c.card_height ?? '', { min: 80, max: 1200, placeholder: 'auto' }));
 
       // ── Pop-up ────────────────────────────────────────────────────────
-      form.appendChild(this._makeSection('Pop-up Mode'));
-      form.appendChild(this._makeToggleRow('popup', 'Show as pop-up overlay (triggered by button in card)', c.popup));
+      form.appendChild(this._makeSection(this._t('editor.popup_mode')));
+      form.appendChild(this._makeToggleRow('popup', this._t('editor.popup'), c.popup));
 
       // ── Direction ─────────────────────────────────────────────────────
-      form.appendChild(this._makeSection('Direction'));
-      form.appendChild(this._makeToggleRow('invert_top',    'Invert top beam direction',    c.invert_top));
-      form.appendChild(this._makeToggleRow('invert_bottom', 'Invert bottom beam direction', c.invert_bottom));
+      form.appendChild(this._makeSection(this._t('editor.direction')));
+      form.appendChild(this._makeToggleRow('invert_top',    this._t('editor.invert_top'),    c.invert_top));
+      form.appendChild(this._makeToggleRow('invert_bottom', this._t('editor.invert_bottom'), c.invert_bottom));
 
       sr.appendChild(form);
     }
