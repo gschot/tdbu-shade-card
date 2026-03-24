@@ -15,8 +15,77 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.2.7';
+  const VERSION = '1.3.0';
   const TAG     = 'tdbu-shade-card';
+
+  /* ---- Theme definitions ------------------------------------------- */
+  /*
+   * Each theme provides CSS variables injected into the shadow root.
+   * Keys:
+   *   --frame-color        window frame / border colour
+   *   --frame-bg           sky / glass background (gradient or solid)
+   *   --divider-color-     centre mullion override (falls back to --frame-color)
+   *   --beam-bg            beam rail gradient
+   *   --beam-shadow        beam box-shadow
+   *   --fabric-bg          fabric CSS background (layered gradients)
+   *   --fabric-shadow      fabric box-shadow
+   */
+  const THEMES = {
+    /* Natural wood — original look */
+    wood: {
+      label: 'Natural Wood',
+      vars: `
+        --t-frame:   #6b5a3e;
+        --t-glass:   linear-gradient(180deg, rgba(173,216,240,.75) 0%, rgba(230,248,255,.55) 100%);
+        --t-mullion: #6b5a3e;
+        --t-beam:    linear-gradient(180deg,#7c5530 0%,#a97840 35%,#8a6030 65%,#5d3d18 100%);
+        --t-beam-sh: 0 3px 9px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.22);
+        --t-fabric:  repeating-linear-gradient(0deg,transparent 0px,transparent 7px,rgba(100,65,15,.13) 7px,rgba(100,65,15,.13) 8px),
+                     repeating-linear-gradient(90deg,transparent 0px,transparent 9px,rgba(100,65,15,.10) 9px,rgba(100,65,15,.10) 10px),
+                     linear-gradient(180deg,rgba(215,175,100,.92) 0%,rgba(190,148,72,.92) 100%);
+        --t-fab-sh:  0 -3px 8px rgba(0,0,0,.28),0 3px 8px rgba(0,0,0,.28);`,
+    },
+    /* Modern white frame with light-grey linen shade */
+    modern: {
+      label: 'Modern White',
+      vars: `
+        --t-frame:   #d0d0d0;
+        --t-glass:   linear-gradient(180deg,rgba(200,230,255,.80) 0%,rgba(235,250,255,.60) 100%);
+        --t-mullion: #c0c0c0;
+        --t-beam:    linear-gradient(180deg,#e8e8e8 0%,#ffffff 35%,#e0e0e0 65%,#c8c8c8 100%);
+        --t-beam-sh: 0 2px 7px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.80);
+        --t-fabric:  repeating-linear-gradient(0deg,transparent 0px,transparent 8px,rgba(160,150,135,.10) 8px,rgba(160,150,135,.10) 9px),
+                     repeating-linear-gradient(90deg,transparent 0px,transparent 10px,rgba(160,150,135,.08) 10px,rgba(160,150,135,.08) 11px),
+                     linear-gradient(180deg,rgba(220,215,205,.95) 0%,rgba(200,195,182,.95) 100%);
+        --t-fab-sh:  0 -2px 6px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.18);`,
+    },
+    /* Minimalist — frameless, white-on-white with soft shadow */
+    minimal: {
+      label: 'Minimal',
+      vars: `
+        --t-frame:   var(--divider-color,#e0e0e0);
+        --t-glass:   var(--secondary-background-color,#f5f5f5);
+        --t-mullion: var(--divider-color,#e0e0e0);
+        --t-beam:    linear-gradient(180deg,#bdbdbd 0%,#e0e0e0 50%,#bdbdbd 100%);
+        --t-beam-sh: 0 2px 6px rgba(0,0,0,.15);
+        --t-fabric:  linear-gradient(180deg,rgba(189,189,189,.85) 0%,rgba(158,158,158,.85) 100%);
+        --t-fab-sh:  0 -2px 5px rgba(0,0,0,.12),0 2px 5px rgba(0,0,0,.12);`,
+    },
+    /* Dark — slate frame, night sky, dark fabric */
+    dark: {
+      label: 'Dark',
+      vars: `
+        --t-frame:   #2a2a2a;
+        --t-glass:   linear-gradient(180deg,rgba(10,20,50,.90) 0%,rgba(20,35,70,.80) 100%);
+        --t-mullion: #1a1a1a;
+        --t-beam:    linear-gradient(180deg,#3a3a3a 0%,#555 35%,#3a3a3a 65%,#222 100%);
+        --t-beam-sh: 0 3px 9px rgba(0,0,0,.70),inset 0 1px 0 rgba(255,255,255,.10);
+        --t-fabric:  repeating-linear-gradient(0deg,transparent 0px,transparent 7px,rgba(255,255,255,.04) 7px,rgba(255,255,255,.04) 8px),
+                     repeating-linear-gradient(90deg,transparent 0px,transparent 9px,rgba(255,255,255,.03) 9px,rgba(255,255,255,.03) 10px),
+                     linear-gradient(180deg,rgba(60,65,75,.95) 0%,rgba(40,45,55,.95) 100%);
+        --t-fab-sh:  0 -3px 8px rgba(0,0,0,.60),0 3px 8px rgba(0,0,0,.60);`,
+    },
+  };
 
   /* ------------------------------------------------------------------ */
   /*  Card class                                                          */
@@ -54,6 +123,9 @@
         show_percentages : false,
         show_controls    : false,
         step             : 5,
+        theme            : 'wood',   // 'wood' | 'modern' | 'minimal' | 'dark'
+        card_height      : null,     // null = auto | number = fixed px height of window area
+        popup            : false,    // true = floating overlay / pop-up card
 
         // Invert a beam's percentage direction if your integration is reversed:
         // invert_top   : false,
@@ -86,6 +158,9 @@
         show_percentages : false,
         show_controls    : false,
         step             : 5,
+        theme            : 'wood',      // 'wood' | 'modern' | 'minimal' | 'dark'
+        card_height      : null,        // null = auto aspect-ratio 3:4 | number = px height of window area
+        popup            : false,       // when true: card acts as a pop-up trigger/overlay
         // Single-entity attribute mapping (override if your integration differs)
         top_attribute    : 'position',       // reads current_position
         bottom_attribute : 'tilt_position',  // reads current_tilt_position
@@ -290,6 +365,10 @@
       const pctBot = sr.getElementById('pct-bot');
       if (pctTop) pctTop.textContent = `${Math.round(this._top)}%`;
       if (pctBot) pctBot.textContent = `${Math.round(this._bottom)}%`;
+
+      // Popup trigger bar summary
+      const trigPct = sr.getElementById('trigger-pct');
+      if (trigPct) trigPct.textContent = `Top: ${Math.round(this._top)}%  ·  Bottom: ${Math.round(this._bottom)}%`;
     }
 
     /* ---- Arrow button step ------------------------------------------ */
@@ -349,11 +428,11 @@
     }
 
     disconnectedCallback () {
-      // Always clean up global listeners
       document.removeEventListener('mousemove', this._onMove);
       document.removeEventListener('mouseup',   this._onEnd);
       document.removeEventListener('touchmove', this._onMove);
       document.removeEventListener('touchend',  this._onEnd);
+      if (this._onEsc) document.removeEventListener('keydown', this._onEsc);
     }
 
     /* ---- Rendering -------------------------------------------------- */
@@ -363,133 +442,184 @@
       const sp = c.show_percentages;
       const sc = c.show_controls;
 
+      // Resolve theme CSS variables (fall back to 'wood' for unknown themes)
+      const themeVars = (THEMES[c.theme] ?? THEMES.wood).vars;
+
+      // Window height: either fixed px (card_height) or responsive aspect-ratio
+      const winHeightStyle = c.card_height
+        ? `height:${Number(c.card_height)}px; aspect-ratio:unset;`
+        : `aspect-ratio:3/4;`;
+
       this.shadowRoot.innerHTML = `
         <style>
           *, *::before, *::after { box-sizing: border-box; }
-
           :host { display: block; }
+
+          /* ---- Theme variables ---- */
+          :host {
+            ${themeVars}
+          }
 
           ha-card { padding: 16px; }
 
           /* ---- Card title ---- */
           .title {
-            font-size  : var(--ha-card-header-font-size, 1.2em);
-            font-weight: 500;
+            font-size    : var(--ha-card-header-font-size, 1.2em);
+            font-weight  : 500;
+            margin       : 0 0 14px;
+            color        : var(--primary-text-color);
+            overflow     : hidden;
+            text-overflow: ellipsis;
+            white-space  : nowrap;
+            ${c.popup ? 'cursor:pointer; user-select:none;' : ''}
+          }
+          ${c.popup ? '.title:hover { opacity: 0.75; }' : ''}
+
+          /* ---- Popup overlay ---- */
+          .popup-backdrop {
+            position  : fixed;
+            inset     : 0;
+            background: rgba(0,0,0,0.55);
+            z-index   : 1000;
+            display   : flex;
+            align-items: center;
+            justify-content: center;
+            opacity   : 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+          }
+          .popup-backdrop.open {
+            opacity       : 1;
+            pointer-events: all;
+          }
+          .popup-box {
+            background   : var(--ha-card-background, var(--card-background-color, #fff));
+            border-radius: var(--ha-card-border-radius, 12px);
+            box-shadow   : 0 8px 32px rgba(0,0,0,0.4);
+            padding      : 20px;
+            width        : min(420px, 92vw);
+            max-height   : 90vh;
+            overflow-y   : auto;
+            position     : relative;
+          }
+          .popup-close {
+            position    : absolute;
+            top         : 10px;
+            right       : 12px;
+            background  : transparent;
+            border      : none;
+            font-size   : 1.3em;
+            cursor      : pointer;
+            color       : var(--secondary-text-color);
+            line-height : 1;
+            padding     : 4px 8px;
+            border-radius: 4px;
+          }
+          .popup-close:hover { background: var(--secondary-background-color,#eee); }
+          .popup-title {
+            font-size  : 1.1em;
+            font-weight: 600;
             margin     : 0 0 14px;
             color      : var(--primary-text-color);
-            overflow   : hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            padding-right: 32px;
           }
+
+          /* ---- Trigger button (shown in card when popup:true) ---- */
+          .popup-trigger {
+            display    : flex;
+            align-items: center;
+            gap        : 10px;
+            padding    : 12px 16px;
+            border     : 1px solid var(--divider-color, #ddd);
+            border-radius: 8px;
+            cursor     : pointer;
+            background : transparent;
+            width      : 100%;
+            font-size  : 0.95em;
+            color      : var(--primary-text-color);
+            font-family: inherit;
+            transition : background 0.15s;
+          }
+          .popup-trigger:hover { background: var(--secondary-background-color,#f5f5f5); }
+          .popup-trigger-icon { font-size: 1.4em; }
+          .popup-trigger-info { text-align: left; }
+          .popup-trigger-name { font-weight: 600; }
+          .popup-trigger-pct  { font-size: 0.82em; color: var(--secondary-text-color); }
 
           /* ---- Window container ---- */
           .shade-window {
             position    : relative;
             width       : 100%;
-            aspect-ratio: 3 / 4;
-            border      : 3px solid var(--divider-color, #777);
-            border-bottom-width: 6px;            /* window sill */
+            ${winHeightStyle}
+            border      : 3px solid var(--t-frame, #777);
+            border-bottom-width: 6px;
             border-radius: 4px 4px 3px 3px;
             overflow    : hidden;
             user-select : none;
             touch-action: none;
-            background  : linear-gradient(180deg,
-              rgba(173, 216, 240, 0.75) 0%,
-              rgba(230, 248, 255, 0.55) 100%);
-            box-shadow  : inset 0 0 14px rgba(0, 0, 0, 0.08);
+            background  : var(--t-glass, linear-gradient(180deg,rgba(173,216,240,.75) 0%,rgba(230,248,255,.55) 100%));
+            box-shadow  : inset 0 0 14px rgba(0,0,0,0.08);
           }
 
-          /* Subtle vertical window frame divider */
+          /* Centre mullion */
           .shade-window::after {
-            content : '';
-            position: absolute;
-            top     : 0;
-            bottom  : 0;
-            left    : 50%;
-            width   : 3px;
-            background: var(--divider-color, #777);
+            content   : '';
+            position  : absolute;
+            top       : 0; bottom: 0;
+            left      : 50%;
+            width     : 3px;
+            background: var(--t-mullion, var(--t-frame, #777));
             pointer-events: none;
-            z-index : 5;
+            z-index   : 5;
           }
 
           /* ---- Shade fabric ---- */
           .fabric {
-            position  : absolute;
-            left      : 0;
-            right     : 0;
+            position      : absolute;
+            left : 0; right: 0;
             pointer-events: none;
-            z-index   : 2;
-            background:
-              /* horizontal weave lines */
-              repeating-linear-gradient(
-                0deg,
-                transparent 0px, transparent 7px,
-                rgba(100, 65, 15, 0.13) 7px, rgba(100, 65, 15, 0.13) 8px
-              ),
-              /* vertical weave lines */
-              repeating-linear-gradient(
-                90deg,
-                transparent 0px, transparent 9px,
-                rgba(100, 65, 15, 0.10) 9px, rgba(100, 65, 15, 0.10) 10px
-              ),
-              /* base fabric color */
-              linear-gradient(180deg,
-                rgba(215, 175, 100, 0.92) 0%,
-                rgba(190, 148, 72, 0.92) 100%);
-            box-shadow:
-              0 -3px 8px rgba(0, 0, 0, 0.28),
-               0  3px 8px rgba(0, 0, 0, 0.28);
+            z-index       : 2;
+            background    : var(--t-fabric);
+            box-shadow    : var(--t-fab-sh);
           }
 
           /* ---- Beam (rail) ---- */
           .beam {
             position     : absolute;
-            left         : 0;
-            right        : 0;
+            left: 0; right: 0;
             height       : 14px;
             transform    : translateY(-50%);
-            background   : linear-gradient(180deg,
-              #7c5530 0%,
-              #a97840 35%,
-              #8a6030 65%,
-              #5d3d18 100%);
+            background   : var(--t-beam);
             border-radius: 3px;
-            box-shadow   :
-              0 3px 9px rgba(0, 0, 0, 0.45),
-              inset 0 1px 0 rgba(255, 255, 255, 0.22);
+            box-shadow   : var(--t-beam-sh);
             cursor       : ns-resize;
             z-index      : 10;
             touch-action : none;
           }
-
-          /* Grip marks */
           .beam::before {
             content  : '';
             position : absolute;
-            top      : 50%;
-            left     : 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             width    : 44%;
             height   : 2px;
-            background: rgba(255, 255, 255, 0.30);
+            background: rgba(255,255,255,0.30);
             border-radius: 1px;
-            box-shadow:
-              0 -5px 0 rgba(255, 255, 255, 0.15),
-               0  5px 0 rgba(255, 255, 255, 0.15);
+            box-shadow: 0 -5px 0 rgba(255,255,255,.15), 0 5px 0 rgba(255,255,255,.15);
           }
 
           /* Percentage label on beam */
           .beam-label {
-            position     : absolute;
-            right        : 10px;
-            top          : 50%;
-            transform    : translateY(-50%);
-            font-size    : 0.68em;
-            font-weight  : 700;
-            color        : rgba(255, 255, 255, 0.95);
+            position      : absolute;
+            right         : 10px;
+            top           : 50%;
+            transform     : translateY(-50%);
+            font-size     : 0.68em;
+            font-weight   : 700;
+            color         : rgba(255,255,255,0.95);
             pointer-events: none;
-            text-shadow  : 0 1px 3px rgba(0, 0, 0, 0.6);
-            white-space  : nowrap;
+            text-shadow   : 0 1px 3px rgba(0,0,0,0.6);
+            white-space   : nowrap;
           }
 
           /* ---- Arrow controls ---- */
@@ -499,71 +629,76 @@
             gap                  : 12px;
             margin-top           : 12px;
           }
-
-          .beam-ctrl {
-            display       : flex;
-            flex-direction: column;
-            align-items   : center;
-            gap           : 5px;
-          }
-
-          .ctrl-label {
-            font-size  : 0.78em;
-            font-weight: 500;
-            color      : var(--secondary-text-color);
-          }
-
-          .btn-row {
-            display    : flex;
-            align-items: center;
-            gap        : 8px;
-          }
-
+          .beam-ctrl { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+          .ctrl-label { font-size: 0.78em; font-weight: 500; color: var(--secondary-text-color); }
+          .btn-row { display: flex; align-items: center; gap: 8px; }
           .ctrl-btn {
-            width      : 34px;
-            height     : 34px;
-            border     : none;
-            border-radius: 50%;
-            background : var(--primary-color, #03a9f4);
-            color      : #fff;
-            font-size  : 14px;
-            line-height: 1;
-            cursor     : pointer;
-            display    : flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow : 0 2px 5px rgba(0, 0, 0, 0.22);
-            transition : filter 0.15s, transform 0.1s;
+            width: 34px; height: 34px;
+            border: none; border-radius: 50%;
+            background: var(--primary-color, #03a9f4);
+            color: #fff; font-size: 14px; line-height: 1;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,.22);
+            transition: filter 0.15s, transform 0.1s;
             -webkit-tap-highlight-color: transparent;
           }
-
           .ctrl-btn:hover  { filter: brightness(1.18); }
           .ctrl-btn:active { transform: scale(0.90); filter: brightness(0.88); }
-
-          .ctrl-pct {
-            font-size  : 0.82em;
-            font-weight: 500;
-            color      : var(--primary-text-color);
-            min-width  : 38px;
-            text-align : center;
-          }
+          .ctrl-pct { font-size: 0.82em; font-weight: 500; color: var(--primary-text-color); min-width: 38px; text-align: center; }
         </style>
 
+        ${c.popup ? `
+        <!-- ═══ Pop-up overlay (hidden until opened) ═══ -->
+        <div class="popup-backdrop" id="popup-backdrop">
+          <div class="popup-box">
+            <button class="popup-close" id="popup-close" aria-label="Close">✕</button>
+            ${c.name ? `<div class="popup-title">${this._esc(c.name)}</div>` : ''}
+            <div class="shade-window" id="win">
+              <div class="fabric" id="fabric"></div>
+              <div class="beam" id="top-beam">${sp ? `<span class="beam-label" id="lbl-top"></span>` : ''}</div>
+              <div class="beam" id="bot-beam">${sp ? `<span class="beam-label" id="lbl-bot"></span>` : ''}</div>
+            </div>
+            ${sc ? `
+            <div class="controls">
+              <div class="beam-ctrl">
+                <div class="ctrl-label">Top Beam</div>
+                <div class="btn-row">
+                  <button class="ctrl-btn" id="top-up"   aria-label="Top beam up">▲</button>
+                  <span   class="ctrl-pct" id="pct-top"></span>
+                  <button class="ctrl-btn" id="top-down" aria-label="Top beam down">▼</button>
+                </div>
+              </div>
+              <div class="beam-ctrl">
+                <div class="ctrl-label">Bottom Beam</div>
+                <div class="btn-row">
+                  <button class="ctrl-btn" id="bot-up"   aria-label="Bottom beam up">▲</button>
+                  <span   class="ctrl-pct" id="pct-bot"></span>
+                  <button class="ctrl-btn" id="bot-down" aria-label="Bottom beam down">▼</button>
+                </div>
+              </div>
+            </div>` : ''}
+          </div>
+        </div>
+
+        <!-- ═══ Trigger button shown in the card ════ -->
+        <ha-card>
+          <button class="popup-trigger" id="popup-open" aria-label="Open ${this._esc(c.name || 'shade')}">
+            <span class="popup-trigger-icon">🪟</span>
+            <span class="popup-trigger-info">
+              <span class="popup-trigger-name">${this._esc(c.name || 'Window Shade')}</span><br>
+              <span class="popup-trigger-pct" id="trigger-pct">Top: —  Bottom: —</span>
+            </span>
+          </button>
+        </ha-card>
+        ` : `
+        <!-- ═══ Normal inline card ═══ -->
         <ha-card>
           ${c.name ? `<div class="title">${this._esc(c.name)}</div>` : ''}
-
           <div class="shade-window" id="win">
             <div class="fabric" id="fabric"></div>
-
-            <div class="beam" id="top-beam">
-              ${sp ? `<span class="beam-label" id="lbl-top"></span>` : ''}
-            </div>
-
-            <div class="beam" id="bot-beam">
-              ${sp ? `<span class="beam-label" id="lbl-bot"></span>` : ''}
-            </div>
+            <div class="beam" id="top-beam">${sp ? `<span class="beam-label" id="lbl-top"></span>` : ''}</div>
+            <div class="beam" id="bot-beam">${sp ? `<span class="beam-label" id="lbl-bot"></span>` : ''}</div>
           </div>
-
           ${sc ? `
           <div class="controls">
             <div class="beam-ctrl">
@@ -582,9 +717,9 @@
                 <button class="ctrl-btn" id="bot-down" aria-label="Bottom beam down">▼</button>
               </div>
             </div>
-          </div>
-          ` : ''}
+          </div>` : ''}
         </ha-card>
+        `}
       `;
 
       this._wire();
@@ -617,12 +752,37 @@
 
       if (this._config.show_controls) {
         const step = Number(this._config.step) || 5;
-        // Top beam: ▲ = move up (topValue decreases), ▼ = move down (topValue increases)
         sr.getElementById('top-up')  ?.addEventListener('click', () => this._step('top',    -step));
         sr.getElementById('top-down')?.addEventListener('click', () => this._step('top',    +step));
-        // Bottom beam: ▲ = move up (bottomValue increases), ▼ = move down (bottomValue decreases)
         sr.getElementById('bot-up')  ?.addEventListener('click', () => this._step('bottom', +step));
         sr.getElementById('bot-down')?.addEventListener('click', () => this._step('bottom', -step));
+      }
+
+      // ── Popup wiring ──────────────────────────────────────────────────
+      if (this._config.popup) {
+        const backdrop = sr.getElementById('popup-backdrop');
+        const openBtn  = sr.getElementById('popup-open');
+        const closeBtn = sr.getElementById('popup-close');
+
+        const openPopup = () => {
+          backdrop?.classList.add('open');
+          // Recalculate drag rect after popup layout is painted
+          requestAnimationFrame(() => { this._drag = null; });
+        };
+        const closePopup = (e) => {
+          // Close when clicking the backdrop itself (not the box inside)
+          if (e && e.target !== backdrop) return;
+          backdrop?.classList.remove('open');
+        };
+        const closePopupDirect = () => backdrop?.classList.remove('open');
+
+        openBtn?.addEventListener('click',  openPopup);
+        closeBtn?.addEventListener('click', closePopupDirect);
+        backdrop?.addEventListener('click', closePopup);
+
+        // Close on Escape key
+        this._onEsc = (e) => { if (e.key === 'Escape') closePopupDirect(); };
+        document.addEventListener('keydown', this._onEsc);
       }
     }
 
@@ -758,8 +918,17 @@
       if (o.max         !== undefined) input.max         = String(o.max);
       input.addEventListener('change', e => {
         if (type === 'number') {
-          const v = parseInt(e.target.value, 10);
-          if (!isNaN(v) && v >= (o.min ?? -Infinity)) this._update({ [id]: v });
+          const raw = e.target.value.trim();
+          if (raw === '') {
+            // Empty means "use default / null"
+            const next = { ...this._config };
+            delete next[id];
+            this._config = next;
+            this._fire();
+          } else {
+            const v = parseInt(raw, 10);
+            if (!isNaN(v) && v >= (o.min ?? -Infinity)) this._update({ [id]: v });
+          }
         } else {
           this._update({ [id]: e.target.value.trim() || (o.fallback ?? '') });
         }
@@ -956,6 +1125,21 @@
       form.appendChild(this._makeToggleRow('show_controls',    'Show arrow controls',       c.show_controls));
       form.appendChild(this._makeTextField('step', 'Step size for arrow controls (%)', 'number',
         c.step ?? 5, { min: 1, max: 50 }));
+
+      // ── Appearance ────────────────────────────────────────────────────
+      form.appendChild(this._makeSection('Appearance'));
+      form.appendChild(this._makeSelectRow('theme', 'Visual Theme',
+        [['wood',    '🪵 Natural Wood'],
+         ['modern',  '🤍 Modern White'],
+         ['minimal', '⬜ Minimal'],
+         ['dark',    '🌑 Dark']],
+        c.theme ?? 'wood'));
+      form.appendChild(this._makeTextField('card_height', 'Window height (px, leave empty for auto)', 'number',
+        c.card_height ?? '', { min: 80, max: 1200, placeholder: 'auto' }));
+
+      // ── Pop-up ────────────────────────────────────────────────────────
+      form.appendChild(this._makeSection('Pop-up Mode'));
+      form.appendChild(this._makeToggleRow('popup', 'Show as pop-up overlay (triggered by button in card)', c.popup));
 
       // ── Direction ─────────────────────────────────────────────────────
       form.appendChild(this._makeSection('Direction'));

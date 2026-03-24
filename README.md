@@ -57,8 +57,8 @@ The card shows a scaled window visualization with the two wooden rails and the s
 > The included GitHub Actions workflow (`.github/workflows/release.yaml`) creates a
 > release automatically whenever you push a tag:
 > ```bash
-> git tag v1.2.7
-> git push origin v1.2.7
+> git tag v1.3.0
+> git push origin v1.3.0
 > ```
 
 ### Manual installation
@@ -196,6 +196,16 @@ The card expects values in the range **0 – 100 %**.
 ---
 
 ## Changelog
+
+### v1.3.0
+- **Visual Themes** — choose from four built-in styles via `theme:` config or the UI editor:
+  - `wood` (default) — natural wood frame, sky glass, golden fabric
+  - `modern` — white aluminium frame, light linen fabric
+  - `minimal` — borderless, grey-on-grey
+  - `dark` — slate frame, night sky, dark fabric
+- **Resizable** — set `card_height:` (px) to fix the window height; leave empty for the default responsive 3:4 aspect ratio
+- **Pop-up mode** — set `popup: true` to collapse the card into a small trigger button; clicking it opens a floating overlay with the full shade control. Closes on ✕ button, backdrop click, or Escape key.
+- All three new options are available in the visual card editor (Appearance and Pop-up sections)
 
 ### v1.2.7
 - Fixed card always showing fully-open state on load: `_ready` was set to `true` **after** `_renderCard()` returned, but `_paint()` guards on `_ready` and bailed out immediately — leaving beams at default position. Fix: `_ready = true` is now set before `_renderCard()` so the initial paint executes correctly.
