@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260" width="200" height="260">
+  <defs>
+    <linearGradient id="sky-m" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(200,230,255,0.9)"/>
+      <stop offset="100%" stop-color="rgba(235,250,255,0.7)"/>
+    </linearGradient>
+    <linearGradient id="beam-m" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#e8e8e8"/>
+      <stop offset="35%"  stop-color="#ffffff"/>
+      <stop offset="65%"  stop-color="#e0e0e0"/>
+      <stop offset="100%" stop-color="#c8c8c8"/>
+    </linearGradient>
+    <linearGradient id="fab-m" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="rgba(220,215,205,0.97)"/>
+      <stop offset="100%" stop-color="rgba(200,195,182,0.97)"/>
+    </linearGradient>
+    <pattern id="linen-m" width="11" height="9" patternUnits="userSpaceOnUse">
+      <rect width="11" height="9" fill="transparent"/>
+      <line x1="0" y1="9" x2="11" y2="9" stroke="rgba(160,150,135,0.10)" stroke-width="1"/>
+      <line x1="10" y1="0" x2="10" y2="9" stroke="rgba(160,150,135,0.08)" stroke-width="1"/>
+    </pattern>
+    <filter id="beam-shadow-m">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="rgba(0,0,0,0.20)"/>
+    </filter>
+  </defs>
+
+  <!-- Frame -->
+  <rect x="0" y="0" width="200" height="260" rx="6" ry="6" fill="#d0d0d0"/>
+
+  <!-- Glass / sky above top beam -->
+  <rect x="6" y="6" width="188" height="74" fill="url(#sky-m)"/>
+
+  <!-- Top beam -->
+  <rect x="6" y="77" width="188" height="16" rx="2" fill="url(#beam-m)" filter="url(#beam-shadow-m)"/>
+  <line x1="6" y1="82" x2="194" y2="82" stroke="rgba(255,255,255,0.80)" stroke-width="1"/>
+  <line x1="6" y1="87" x2="194" y2="87" stroke="rgba(0,0,0,0.06)" stroke-width="0.5"/>
+
+  <!-- Fabric -->
+  <rect x="6" y="93" width="188" height="100" fill="url(#fab-m)"/>
+  <rect x="6" y="93" width="188" height="100" fill="url(#linen-m)"/>
+
+  <!-- Bottom beam -->
+  <rect x="6" y="193" width="188" height="16" rx="2" fill="url(#beam-m)" filter="url(#beam-shadow-m)"/>
+  <line x1="6" y1="198" x2="194" y2="198" stroke="rgba(255,255,255,0.80)" stroke-width="1"/>
+  <line x1="6" y1="203" x2="194" y2="203" stroke="rgba(0,0,0,0.06)" stroke-width="0.5"/>
+
+  <!-- Glass / sky below bottom beam -->
+  <rect x="6" y="209" width="188" height="45" fill="url(#sky-m)"/>
+
+  <!-- Label -->
+  <rect x="20" y="236" width="160" height="18" rx="4" fill="rgba(0,0,0,0.12)"/>
+  <text x="100" y="249" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#555" font-weight="600" letter-spacing="0.5">🤍 Modern White</text>
+</svg>

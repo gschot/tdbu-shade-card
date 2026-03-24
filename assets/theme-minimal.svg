@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260" width="200" height="260">
+  <defs>
+    <linearGradient id="beam-min" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#bdbdbd"/>
+      <stop offset="50%"  stop-color="#e0e0e0"/>
+      <stop offset="100%" stop-color="#bdbdbd"/>
+    </linearGradient>
+    <linearGradient id="fab-min" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="rgba(189,189,189,0.90)"/>
+      <stop offset="100%" stop-color="rgba(158,158,158,0.90)"/>
+    </linearGradient>
+    <filter id="beam-shadow-min">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.15)"/>
+    </filter>
+  </defs>
+
+  <!-- Frame (borderless / very light) -->
+  <rect x="0" y="0" width="200" height="260" rx="6" ry="6" fill="#e8e8e8"/>
+
+  <!-- Glass background -->
+  <rect x="6" y="6" width="188" height="248" fill="#f5f5f5"/>
+
+  <!-- Glass / sky above top beam -->
+  <rect x="6" y="6" width="188" height="74" fill="#f0f0f0"/>
+
+  <!-- Top beam -->
+  <rect x="6" y="77" width="188" height="16" rx="2" fill="url(#beam-min)" filter="url(#beam-shadow-min)"/>
+
+  <!-- Fabric -->
+  <rect x="6" y="93" width="188" height="100" fill="url(#fab-min)"/>
+
+  <!-- Bottom beam -->
+  <rect x="6" y="193" width="188" height="16" rx="2" fill="url(#beam-min)" filter="url(#beam-shadow-min)"/>
+
+  <!-- Glass / sky below bottom beam -->
+  <rect x="6" y="209" width="188" height="45" fill="#f0f0f0"/>
+
+  <!-- Frame border overlay -->
+  <rect x="0" y="0" width="200" height="260" rx="6" ry="6" fill="none" stroke="#e0e0e0" stroke-width="1.5"/>
+
+  <!-- Label -->
+  <rect x="20" y="236" width="160" height="18" rx="4" fill="rgba(0,0,0,0.08)"/>
+  <text x="100" y="249" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#777" font-weight="600" letter-spacing="0.5">⬜ Minimal</text>
+</svg>

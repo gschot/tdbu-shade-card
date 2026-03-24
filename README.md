@@ -1,5 +1,9 @@
 # TDBU Shade Card
 
+<p align="center">
+  <img src="assets/overview.svg" alt="TDBU Shade Card animated overview" width="460"/>
+</p>
+
 A custom Lovelace card for Home Assistant that provides a **visual, interactive representation** of a Top-Down Bottom-Up (TDBU) shade.
 
 ---
@@ -49,17 +53,6 @@ The card shows a scaled window visualization with the two wooden rails and the s
    ```
    /hacsfiles/tdbu-shade-card/tdbu-shade-card.js
    ```
-
-> **Version numbers & update badge**
-> HACS shows a proper version number (e.g. `1.1.0`) and the update-available balloon
-> as soon as the repository has a [GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
-> with a semantic version tag (`v1.1.0`).
-> The included GitHub Actions workflow (`.github/workflows/release.yaml`) creates a
-> release automatically whenever you push a tag:
-> ```bash
-> git tag v1.3.1
-> git push origin v1.3.1
-> ```
 
 ### Manual installation
 
@@ -176,22 +169,26 @@ The card expects values in the range **0 – 100 %**.
 
 ---
 
-## Visual layout
+## Visual themes
 
-```
-┌─────────────────────────┐
-│                         │   ← outside view (sky gradient)
-│─────────────────────────│   ← top beam  (draggable wooden rail)
-│▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
-│▒▒▒▒  shade fabric  ▒▒▒▒│
-│▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│   ← bottom beam (draggable wooden rail)
-│─────────────────────────│
-│                         │   ← outside view
-└─────────────────────────┘
+Four built-in themes, selectable via `theme:` or the visual editor:
 
-      [ Top Beam  ] [▲] 30% [▼]      ← optional controls (show_controls: true)
-      [Bottom Beam] [▲] 20% [▼]
-```
+<p align="center">
+  <img src="assets/theme-wood.svg"    alt="Natural Wood theme"  width="160"/>
+  &nbsp;&nbsp;
+  <img src="assets/theme-modern.svg"  alt="Modern White theme"  width="160"/>
+  &nbsp;&nbsp;
+  <img src="assets/theme-minimal.svg" alt="Minimal theme"       width="160"/>
+  &nbsp;&nbsp;
+  <img src="assets/theme-dark.svg"    alt="Dark theme"          width="160"/>
+</p>
+
+| Key | Description |
+|-----|-------------|
+| `wood` *(default)* | Natural wood frame, sky-blue glass, golden woven fabric |
+| `modern` | White aluminium frame, light-sky glass, beige linen fabric |
+| `minimal` | Frameless grey-on-grey, blends into light HA themes |
+| `dark` | Slate frame, night-sky glass, dark charcoal fabric |
 
 ---
 
