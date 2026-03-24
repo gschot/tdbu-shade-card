@@ -1,206 +1,208 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 300" width="460" height="300">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 300" width="460" height="300">
   <defs>
-    <!-- Gradients -->
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"  stop-color="rgba(173,216,240,0.85)"/>
-      <stop offset="100%" stop-color="rgba(230,248,255,0.65)"/>
+    <linearGradient id="ov-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="rgba(173,216,240,.85)"/>
+      <stop offset="100%" stop-color="rgba(230,248,255,.65)"/>
     </linearGradient>
-    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="ov-beam" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%"   stop-color="#7c5530"/>
       <stop offset="35%"  stop-color="#a97840"/>
       <stop offset="65%"  stop-color="#8a6030"/>
       <stop offset="100%" stop-color="#5d3d18"/>
     </linearGradient>
-    <linearGradient id="fab" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="rgba(215,175,100,0.95)"/>
-      <stop offset="100%" stop-color="rgba(190,148,72,0.95)"/>
+    <linearGradient id="ov-fab" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="rgba(215,175,100,.95)"/>
+      <stop offset="100%" stop-color="rgba(190,148,72,.95)"/>
     </linearGradient>
-    <linearGradient id="card-bg" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="ov-card" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%"   stop-color="#f8f8f8"/>
       <stop offset="100%" stop-color="#ebebeb"/>
     </linearGradient>
-    <pattern id="weave" width="10" height="8" patternUnits="userSpaceOnUse">
-      <line x1="0" y1="8" x2="10" y2="8" stroke="rgba(100,65,15,0.13)" stroke-width="1"/>
-      <line x1="9" y1="0" x2="9" y2="8" stroke="rgba(100,65,15,0.10)" stroke-width="1"/>
+    <pattern id="ov-weave" width="10" height="8" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="8" x2="10" y2="8" stroke="rgba(100,65,15,.13)" stroke-width="1"/>
+      <line x1="9" y1="0" x2="9"  y2="8" stroke="rgba(100,65,15,.10)" stroke-width="1"/>
     </pattern>
-    <filter id="bshadow" x="-10%" y="-30%" width="120%" height="200%">
-      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.45)"/>
+    <filter id="ov-bs" x="-10%" y="-100%" width="120%" height="300%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,.45)"/>
     </filter>
-    <filter id="cardshadow" x="-5%" y="-5%" width="110%" height="120%">
-      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="rgba(0,0,0,0.18)"/>
+    <filter id="ov-cs">
+      <feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="rgba(0,0,0,.15)"/>
     </filter>
-    <clipPath id="window-clip">
-      <rect x="20" y="16" width="220" height="260" rx="2"/>
-    </clipPath>
   </defs>
 
-  <!-- ─────────────────────────────────────────────────────── -->
-  <!-- Background -->
-  <rect width="460" height="300" fill="#f0f2f5" rx="12"/>
-
-  <!-- ─────────────────────────────────────────────────────── -->
-  <!-- Card shadow + body -->
-  <rect x="12" y="8" width="270" height="280" rx="10" fill="url(#card-bg)" filter="url(#cardshadow)"/>
-
-  <!-- Card title bar -->
-  <rect x="12" y="8" width="270" height="32" rx="10" fill="none"/>
-  <rect x="12" y="8" width="270" height="32" rx="10" fill="rgba(0,0,0,0.03)"/>
-  <text x="28" y="29" font-family="'Segoe UI',sans-serif" font-size="13" fontWeight="600" fill="#333">Living Room Shade</text>
-
-  <!-- Window frame -->
-  <rect x="20" y="44" width="220" height="236" rx="6" fill="#6b5a3e" filter="url(#cardshadow)"/>
-
-  <!-- Sky (full) — will be partially covered by beams and fabric -->
-  <rect x="26" y="50" width="208" height="224" fill="url(#sky)" clip-path="url(#window-clip)"/>
-
   <!--
-    Animation sequence (total loop = 8 s):
-      0-1s:   rest — top=25%, bot=35%  → topY=106, fabTop=122, fabH=84, botY=206
-      1-3s:   top beam slides DOWN to 50%  → topY=156  fabric stretches
-      3-4s:   rest
-      4-6s:   bot beam slides UP   to 60%  → botY=182  fabric shrinks
-      6-7s:   rest
-      7-8s:   both snap back to initial position
+    Animation sequence - 9 s loop, beams NEVER cross:
 
-    Window interior: y=50, h=224 → full internal height = 224 px
-    Beam height = 14px
+    keyTimes : 0       0.111   0.333   0.5     0.722   0.889   1
+    t (s)    : 0       1       3       4.5     6.5     8       9
+    Phase    : A-rest  to-B    B-rest  to-C    C-rest  to-A    A-rest
 
-    topPct=25   → topY  = 50 + 224*0.25 - 0     = 50+56  = 106  (top edge of top beam)
-    topPct=50   → topY  = 50 + 224*0.50 - 0     = 50+112 = 162
-    botPct=35   → botY  = 50 + 224*(1-0.35) - 14 = 50+145-14 = 181  (top edge of bot beam)
-    botPct=60   → botY  = 50 + 224*(1-0.60) - 14 = 50+89-14  = 125
+    top  pct : 20%     down    45%     up      20%     hold    20%
+    bot  pct : 25%     hold    25%     up      30%     down    25%
 
-    fabTop  = topY + 14
-    fabBot  = botY
-    fabH    = botY - (topY + 14)
+    Glass interior: y=50, h=224 px  |  beam height: 14 px
+
+    topY: 20% = round(50 + 224x0.20) = 95
+          45% = round(50 + 224x0.45) = 151
+
+    botY: 25% = round(50 + 224x0.75) - 14 = 204
+          30% = round(50 + 224x0.70) - 14 = 193
+
+    Gap checks (top-beam bottom edge vs bot-beam top edge):
+      Phase B: 151+14=165 vs 204  -> 39 px gap  OK
+      Phase C:  95+14=109 vs 193  -> 84 px gap  OK
+      Mid B->C transition (linear): top~123, bot~198  -> 61 px gap  OK
+
+    Fabric: y = topY+14,  height = botY-(topY+14)
+      Phase A: y=109, h=95
+      Phase B: y=165, h=39
+      Phase C: y=109, h=84
   -->
 
-  <!-- ── Top beam ── -->
-  <rect id="top-beam" x="26" y="106" width="208" height="14" rx="2" fill="url(#beam)" filter="url(#bshadow)">
-    <animate attributeName="y"
-      values="106;106;162;162;162;106;106"
-      keyTimes="0;0.125;0.375;0.5;0.875;0.9375;1"
-      dur="8s" repeatCount="indefinite" calcMode="spline"
-      keySplines="0 0 0 0; 0.42 0 0.58 1; 0 0 0 0; 0 0 0 0; 0.42 0 0.58 1; 0 0 0 0"/>
+  <!-- Page background -->
+  <rect width="460" height="300" rx="12" fill="#f0f2f5"/>
+
+  <!-- LEFT: HA Card -->
+  <rect x="12" y="8" width="270" height="280" rx="10" fill="url(#ov-card)" filter="url(#ov-cs)"/>
+  <text x="28" y="32" font-family="'Segoe UI',sans-serif" font-size="13" font-weight="600" fill="#333">Living Room Shade</text>
+
+  <!-- Window frame -->
+  <rect x="20" y="44" width="220" height="236" rx="6" fill="#6b5a3e"/>
+  <!-- Sky / glass -->
+  <rect x="26" y="50" width="208" height="224" fill="url(#ov-sky)"/>
+
+  <!-- Fabric fill -->
+  <rect x="26" y="109" width="208" height="95" fill="url(#ov-fab)">
+    <animate attributeName="y"      calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="109;109;165;165;109;109;109"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0 0 0 0"/>
+    <animate attributeName="height" calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="95;95;39;39;84;84;95"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1"/>
   </rect>
-  <!-- Top beam grain -->
-  <line x1="26" y1="111" x2="234" y2="111" stroke="rgba(255,255,255,0.12)" stroke-width="1">
-    <animate attributeName="y1" values="111;111;167;167;167;111;111" keyTimes="0;0.125;0.375;0.5;0.875;0.9375;1" dur="8s" repeatCount="indefinite" calcMode="spline" keySplines="0 0 0 0; 0.42 0 0.58 1; 0 0 0 0; 0 0 0 0; 0.42 0 0.58 1; 0 0 0 0"/>
-    <animate attributeName="y2" values="111;111;167;167;167;111;111" keyTimes="0;0.125;0.375;0.5;0.875;0.9375;1" dur="8s" repeatCount="indefinite" calcMode="spline" keySplines="0 0 0 0; 0.42 0 0.58 1; 0 0 0 0; 0 0 0 0; 0.42 0 0.58 1; 0 0 0 0"/>
+  <!-- Fabric weave overlay -->
+  <rect x="26" y="109" width="208" height="95" fill="url(#ov-weave)">
+    <animate attributeName="y"      calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="109;109;165;165;109;109;109"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0 0 0 0"/>
+    <animate attributeName="height" calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="95;95;39;39;84;84;95"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1"/>
+  </rect>
+
+  <!-- Top beam -->
+  <rect x="26" y="95" width="208" height="14" rx="2" fill="url(#ov-beam)" filter="url(#ov-bs)">
+    <animate attributeName="y" calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="95;95;151;151;95;95;95"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0 0 0 0"/>
+  </rect>
+  <!-- Top beam grain highlight -->
+  <line x1="26" y1="100" x2="234" y2="100" stroke="rgba(255,255,255,.15)" stroke-width="1">
+    <animate attributeName="y1" calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="100;100;156;156;100;100;100"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0 0 0 0"/>
+    <animate attributeName="y2" calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="100;100;156;156;100;100;100"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0 0 0 0"/>
   </line>
+  <!-- Top beam label "20%" - visible in phases A and C -->
+  <text x="130" y="106" text-anchor="middle"
+      font-family="'Segoe UI',sans-serif" font-size="8.5" font-weight="700" fill="rgba(255,255,255,.90)">
+    <animate attributeName="y" calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="106;106;162;162;106;106;106"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0 0 0 0"/>
+    <animate attributeName="opacity" calcMode="linear" dur="9s" repeatCount="indefinite"
+      values="1;1;0;0;1;1;1"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"/>
+    20%
+  </text>
+  <!-- Top beam label "45%" - visible in phase B only -->
+  <text x="130" y="106" text-anchor="middle" opacity="0"
+      font-family="'Segoe UI',sans-serif" font-size="8.5" font-weight="700" fill="rgba(255,255,255,.90)">
+    <animate attributeName="y" calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="106;106;162;162;106;106;106"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0 0 0 0"/>
+    <animate attributeName="opacity" calcMode="linear" dur="9s" repeatCount="indefinite"
+      values="0;0;1;1;0;0;0"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"/>
+    45%
+  </text>
 
-  <!-- ── Fabric ── (y=topY+14, height=botY-topY-14) -->
-  <!-- fabric fill -->
-  <rect x="26" y="120" width="208" height="61" fill="url(#fab)">
-    <!-- y: topY+14 -->
-    <animate attributeName="y"
-      values="120;120;176;176;176;120;120"
-      keyTimes="0;0.125;0.375;0.5;0.875;0.9375;1"
-      dur="8s" repeatCount="indefinite" calcMode="spline"
-      keySplines="0 0 0 0; 0.42 0 0.58 1; 0 0 0 0; 0 0 0 0; 0.42 0 0.58 1; 0 0 0 0"/>
-    <!-- height: botY - (topY+14) -->
-    <animate attributeName="height"
-      values="61;61;5;5;61;61;61"
-      keyTimes="0;0.125;0.375;0.5;0.625;0.9375;1"
-      dur="8s" repeatCount="indefinite" calcMode="spline"
-      keySplines="0 0 0 0; 0.42 0 0.58 1; 0 0 0 0; 0.42 0 0.58 1; 0 0 0 0; 0 0 0 0"/>
+  <!-- Bottom beam -->
+  <rect x="26" y="204" width="208" height="14" rx="2" fill="url(#ov-beam)" filter="url(#ov-bs)">
+    <animate attributeName="y" calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="204;204;204;204;193;193;204"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0 0 0 0;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1"/>
   </rect>
-  <!-- fabric weave pattern -->
-  <rect x="26" y="120" width="208" height="61" fill="url(#weave)">
-    <animate attributeName="y"
-      values="120;120;176;176;176;120;120"
-      keyTimes="0;0.125;0.375;0.5;0.875;0.9375;1"
-      dur="8s" repeatCount="indefinite" calcMode="spline"
-      keySplines="0 0 0 0; 0.42 0 0.58 1; 0 0 0 0; 0 0 0 0; 0.42 0 0.58 1; 0 0 0 0"/>
-    <animate attributeName="height"
-      values="61;61;5;5;61;61;61"
-      keyTimes="0;0.125;0.375;0.5;0.625;0.9375;1"
-      dur="8s" repeatCount="indefinite" calcMode="spline"
-      keySplines="0 0 0 0; 0.42 0 0.58 1; 0 0 0 0; 0.42 0 0.58 1; 0 0 0 0; 0 0 0 0"/>
-  </rect>
-
-  <!-- ── Bottom beam ── (top edge: botY = 181 → 125) -->
-  <rect x="26" y="181" width="208" height="14" rx="2" fill="url(#beam)" filter="url(#bshadow)">
-    <animate attributeName="y"
-      values="181;181;181;181;125;181;181"
-      keyTimes="0;0.375;0.5;0.5;0.75;0.875;1"
-      dur="8s" repeatCount="indefinite" calcMode="spline"
-      keySplines="0 0 0 0; 0 0 0 0; 0 0 0 0; 0.42 0 0.58 1; 0.42 0 0.58 1; 0 0 0 0"/>
-  </rect>
-  <line x1="26" y1="186" x2="234" y2="186" stroke="rgba(255,255,255,0.12)" stroke-width="1">
-    <animate attributeName="y1" values="186;186;186;186;130;186;186" keyTimes="0;0.375;0.5;0.5;0.75;0.875;1" dur="8s" repeatCount="indefinite" calcMode="spline" keySplines="0 0 0 0; 0 0 0 0; 0 0 0 0; 0.42 0 0.58 1; 0.42 0 0.58 1; 0 0 0 0"/>
-    <animate attributeName="y2" values="186;186;186;186;130;186;186" keyTimes="0;0.375;0.5;0.5;0.75;0.875;1" dur="8s" repeatCount="indefinite" calcMode="spline" keySplines="0 0 0 0; 0 0 0 0; 0 0 0 0; 0.42 0 0.58 1; 0.42 0 0.58 1; 0 0 0 0"/>
+  <!-- Bottom beam grain highlight -->
+  <line x1="26" y1="209" x2="234" y2="209" stroke="rgba(255,255,255,.15)" stroke-width="1">
+    <animate attributeName="y1" calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="209;209;209;209;198;198;209"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0 0 0 0;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1"/>
+    <animate attributeName="y2" calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="209;209;209;209;198;198;209"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0 0 0 0;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1"/>
   </line>
-
-  <!-- Window frame overlay (on top of content for clean border) -->
-  <rect x="20" y="44" width="220" height="236" rx="6" fill="none" stroke="#6b5a3e" stroke-width="3"/>
-
-  <!-- ─────────────────────────────────────────────────────── -->
-  <!-- Controls panel below window -->
-  <rect x="26" y="286" width="208" height="0" fill="none"/>
-
-  <!-- ─────────────────────────────────────────────────────── -->
-  <!-- Right side: info panel -->
-  <rect x="296" y="8" width="152" height="280" rx="10" fill="white" filter="url(#cardshadow)" opacity="0.95"/>
-
-  <!-- Panel title -->
-  <text x="372" y="38" text-anchor="middle" font-family="'Segoe UI',sans-serif" font-size="12" font-weight="700" fill="#444">TDBU Shade Card</text>
-  <line x1="310" y1="46" x2="434" y2="46" stroke="#eee" stroke-width="1"/>
-
-  <!-- Feature list -->
-  <text x="310" y="66" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">🖱 Draggable beams</text>
-  <text x="310" y="85" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">📱 Touch &amp; mouse</text>
-  <text x="310" y="104" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">🎨 4 visual themes</text>
-  <text x="310" y="123" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">📐 Resizable height</text>
-  <text x="310" y="142" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">🪟 Pop-up mode</text>
-  <text x="310" y="161" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">🌍 EN / NL i18n</text>
-  <text x="310" y="180" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">⚙️ Visual card editor</text>
-  <text x="310" y="199" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">📊 % beam display</text>
-
-  <line x1="310" y1="210" x2="434" y2="210" stroke="#eee" stroke-width="1"/>
-
-  <!-- Animated percentage counters -->
-  <text x="310" y="228" font-family="'Segoe UI',sans-serif" font-size="10" fill="#888">Top beam</text>
-  <text x="434" y="228" text-anchor="end" font-family="'Segoe UI',sans-serif" font-size="10" font-weight="600" fill="#a97840">
-    <animate attributeName="textContent"
-      values="25%;25%;50%;50%;50%;25%;25%"
-      keyTimes="0;0.125;0.375;0.5;0.875;0.9375;1"
-      dur="8s" repeatCount="indefinite"/>
+  <!-- Bottom beam label "25%" - visible in phases A and B -->
+  <text x="130" y="215" text-anchor="middle"
+      font-family="'Segoe UI',sans-serif" font-size="8.5" font-weight="700" fill="rgba(255,255,255,.90)">
+    <animate attributeName="y" calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="215;215;215;215;204;204;215"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0 0 0 0;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1"/>
+    <animate attributeName="opacity" calcMode="linear" dur="9s" repeatCount="indefinite"
+      values="1;1;1;1;0;0;1"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"/>
     25%
   </text>
-  <text x="310" y="246" font-family="'Segoe UI',sans-serif" font-size="10" fill="#888">Bottom beam</text>
-  <text x="434" y="246" text-anchor="end" font-family="'Segoe UI',sans-serif" font-size="10" font-weight="600" fill="#a97840">
-    <animate attributeName="textContent"
-      values="35%;35%;35%;35%;60%;35%;35%"
-      keyTimes="0;0.375;0.5;0.5;0.75;0.875;1"
-      dur="8s" repeatCount="indefinite"/>
-    35%
+  <!-- Bottom beam label "30%" - visible in phase C only -->
+  <text x="130" y="215" text-anchor="middle" opacity="0"
+      font-family="'Segoe UI',sans-serif" font-size="8.5" font-weight="700" fill="rgba(255,255,255,.90)">
+    <animate attributeName="y" calcMode="spline" dur="9s" repeatCount="indefinite"
+      values="215;215;215;215;204;204;215"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"
+      keySplines="0 0 0 0;0 0 0 0;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1"/>
+    <animate attributeName="opacity" calcMode="linear" dur="9s" repeatCount="indefinite"
+      values="0;0;0;0;1;1;0"
+      keyTimes="0;0.111;0.333;0.5;0.722;0.889;1"/>
+    30%
   </text>
 
-  <!-- Progress bars under percentage -->
-  <!-- Top progress bar bg -->
-  <rect x="310" y="250" width="124" height="5" rx="2.5" fill="#eee"/>
-  <!-- Top progress bar fill animated -->
-  <rect x="310" y="250" width="31" height="5" rx="2.5" fill="#a97840">
-    <animate attributeName="width"
-      values="31;31;62;62;62;31;31"
-      keyTimes="0;0.125;0.375;0.5;0.875;0.9375;1"
-      dur="8s" repeatCount="indefinite" calcMode="spline"
-      keySplines="0 0 0 0; 0.42 0 0.58 1; 0 0 0 0; 0 0 0 0; 0.42 0 0.58 1; 0 0 0 0"/>
-  </rect>
+  <!-- Window frame border overlay (on top of all content) -->
+  <rect x="20" y="44" width="220" height="236" rx="6" fill="none" stroke="#6b5a3e" stroke-width="3"/>
 
-  <!-- Bottom progress bar bg -->
-  <rect x="310" y="260" width="124" height="5" rx="2.5" fill="#eee"/>
-  <!-- Bottom progress bar fill animated -->
-  <rect x="310" y="260" width="43" height="5" rx="2.5" fill="#a97840">
-    <animate attributeName="width"
-      values="43;43;43;43;74;43;43"
-      keyTimes="0;0.375;0.5;0.5;0.75;0.875;1"
-      dur="8s" repeatCount="indefinite" calcMode="spline"
-      keySplines="0 0 0 0; 0 0 0 0; 0 0 0 0; 0.42 0 0.58 1; 0.42 0 0.58 1; 0 0 0 0"/>
-  </rect>
+  <!-- RIGHT: Info panel -->
+  <rect x="296" y="8" width="152" height="280" rx="10" fill="white" filter="url(#ov-cs)" opacity="0.96"/>
 
-  <!-- Version badge -->
-  <rect x="317" y="272" width="110" height="16" rx="8" fill="#03a9f4" opacity="0.15"/>
-  <text x="372" y="284" text-anchor="middle" font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#0278a8" font-weight="600">v1.3.1 · HACS compatible</text>
+  <text x="372" y="38" text-anchor="middle"
+      font-family="'Segoe UI',sans-serif" font-size="12.5" font-weight="700" fill="#333">TDBU Shade Card</text>
+  <line x1="310" y1="47" x2="434" y2="47" stroke="#eee" stroke-width="1"/>
+
+  <text x="312" y="67"  font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F5B1; Draggable beams</text>
+  <text x="312" y="87"  font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F4F1; Touch &amp; mouse</text>
+  <text x="312" y="107" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F3A8; 4 visual themes</text>
+  <text x="312" y="127" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F4D0; Resizable height</text>
+  <text x="312" y="147" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1FA9F; Pop-up mode</text>
+  <text x="312" y="167" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F30D; EN / NL i18n</text>
+  <text x="312" y="187" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x2699; Visual card editor</text>
+  <text x="312" y="207" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F4CA; % shown on beams</text>
+  <text x="312" y="227" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F512; Beams never cross</text>
+
+  <line x1="310" y1="240" x2="434" y2="240" stroke="#eee" stroke-width="1"/>
+
+  <rect x="317" y="254" width="110" height="18" rx="9" fill="#03a9f4" opacity="0.15"/>
+  <text x="372" y="267" text-anchor="middle"
+      font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#0278a8" font-weight="600">v1.3.1 &#xB7; HACS compatible</text>
 </svg>
