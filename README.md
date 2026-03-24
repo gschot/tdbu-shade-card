@@ -186,6 +186,12 @@ The card expects values in the range **0 – 100 %**.
 
 ## Changelog
 
+### v1.1.0
+- Added **single cover entity mode** (`entity:`) — one entity controls both beams via `position` (top) and `tilt_position` (bottom)
+- Added per-beam inversion flags (`invert_top`, `invert_bottom`) for integrations that report inverted values
+- Added configurable attribute mapping (`top_attribute`, `bottom_attribute`) for single-entity mode
+- Calls `cover.set_cover_tilt_position` when the bottom beam is mapped to `tilt_position`
+
 ### v1.0.0
 - Initial release
 - Draggable beams with mouse and touch support
@@ -193,9 +199,6 @@ The card expects values in the range **0 – 100 %**.
 - Arrow-button controls with configurable step
 - Percentage labels on beams
 - Support for dual entities: `cover`, `number`, `input_number`
-- Support for single cover entity using `position` (top) + `tilt_position` (bottom)
-- Per-beam inversion flags (`invert_top`, `invert_bottom`)
-- Configurable attribute mapping for single-entity mode (`top_attribute`, `bottom_attribute`)
 
 ---
 
