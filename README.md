@@ -57,8 +57,8 @@ The card shows a scaled window visualization with the two wooden rails and the s
 > The included GitHub Actions workflow (`.github/workflows/release.yaml`) creates a
 > release automatically whenever you push a tag:
 > ```bash
-> git tag v1.2.2
-> git push origin v1.2.2
+> git tag v1.2.3
+> git push origin v1.2.3
 > ```
 
 ### Manual installation
@@ -196,6 +196,12 @@ The card expects values in the range **0 – 100 %**.
 ---
 
 ## Changelog
+
+### v1.2.3
+- Fixed entity pickers not appearing after selecting an entity mode in the card editor
+- Root cause: empty `entity: ''` is falsy — mode is now detected via `('entity' in config)` instead of `!!config.entity`
+- Entity picker properties (`hass`, `includeDomains`, `value`) are now set after two animation frames to ensure Lit upgrade has completed
+- No-op guard added: clicking the already-active mode tab no longer re-renders unnecessarily
 
 ### v1.2.2
 - Fixed mode selector in the card editor not responding to user interaction (replaced `ha-select`/`mwc-list-item` with reliable `<button>` tabs)

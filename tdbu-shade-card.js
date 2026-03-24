@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.2.2';
+  const VERSION = '1.2.3';
   const TAG     = 'tdbu-shade-card';
 
   /* ------------------------------------------------------------------ */
@@ -655,11 +655,13 @@
 
     set hass (hass) {
       this._hass = hass;
-      // Push hass down to entity pickers already in the DOM
-      for (const id of ['entity', 'top_entity', 'bottom_entity']) {
-        const el = this.shadowRoot.getElementById(id);
-        if (el) el.hass = hass;
-      }
+      // Push hass to pickers \u2014 defer in case Lit hasn't upgraded them yet
+      requestAnimationFrame(() => {
+        for (const id of ['entity', 'top_entity', 'bottom_entity']) {
+          const el = this.shadowRoot.getElementById(id);
+          if (el) el.hass = hass;
+        }
+      });
     }
 
     /* ---- Fire config-changed event ----------------------------------- */
@@ -681,7 +683,8 @@
 
     _render () {
       const c    = this._config;
-      const mode = c.entity ? 'single' : 'dual';
+      // Use key presence — entity:'' is falsy but still means single mode
+      const mode = ('entity' in c) ? 'single' : 'dual';
 
       this.shadowRoot.innerHTML = `
         <style>
@@ -887,41 +890,43 @@
       const c  = this._config;
       const sr = this.shadowRoot;
 
-      // Text fields
+      // Text fields — synchronous, no upgrade needed
       const nameEl = sr.getElementById('name');
       if (nameEl) nameEl.value = c.name ?? 'Window Shade';
 
       const stepEl = sr.getElementById('step');
       if (stepEl) stepEl.value = String(c.step ?? 5);
 
-      // Entity pickers — must be set as JS properties because HA uses Lit internals.
-      // Dual pickers accept cover / number / input_number; single picker only cover.
-      const pickerCfg = [
-        ['top_entity',    ['cover', 'number', 'input_number']],
-        ['bottom_entity', ['cover', 'number', 'input_number']],
-        ['entity',        ['cover']],
-      ];
-      for (const [id, domains] of pickerCfg) {
-        const el = sr.getElementById(id);
-        if (el) {
-          if (this._hass) el.hass = this._hass;
-          el.includeDomains = domains;
-          el.value = c[id] ?? '';
-        }
-      }
-
-      // Native attribute selects
+      // Native attribute selects — synchronous
       const topAttrEl = sr.getElementById('top_attribute');
       if (topAttrEl) topAttrEl.value = c.top_attribute ?? 'position';
 
       const botAttrEl = sr.getElementById('bottom_attribute');
       if (botAttrEl) botAttrEl.value = c.bottom_attribute ?? 'tilt_position';
 
-      // Switches
+      // Switches — synchronous
       for (const id of ['show_percentages', 'show_controls', 'invert_top', 'invert_bottom']) {
         const el = sr.getElementById(id);
         if (el) el.checked = !!c[id];
       }
+
+      // ha-entity-picker is a Lit element — properties must be set after upgrade.
+      // Two rAF frames ensure connectedCallback + first Lit render have completed.
+      const applyPickers = () => {
+        const pickerCfg = [
+          ['top_entity',    ['cover', 'number', 'input_number']],
+          ['bottom_entity', ['cover', 'number', 'input_number']],
+          ['entity',        ['cover']],
+        ];
+        for (const [id, domains] of pickerCfg) {
+          const el = sr.getElementById(id);
+          if (!el) continue;
+          if (this._hass) el.hass = this._hass;
+          el.includeDomains = domains;
+          el.value = c[id] ?? '';
+        }
+      };
+      requestAnimationFrame(() => requestAnimationFrame(applyPickers));
     }
 
     /* ---- Attach editor event listeners ------------------------------- */
@@ -938,13 +943,14 @@
       sr.querySelectorAll('.mode-tab').forEach(btn => {
         btn.addEventListener('click', () => {
           const val  = btn.dataset.mode;
+          if (val === (('entity' in this._config) ? 'single' : 'dual')) return; // no-op
           const next = { ...this._config };
           if (val === 'single') {
             delete next.top_entity;
             delete next.bottom_entity;
-            if (!next.entity)           next.entity           = '';
-            if (!next.top_attribute)    next.top_attribute    = 'position';
-            if (!next.bottom_attribute) next.bottom_attribute = 'tilt_position';
+            next.entity           = next.entity        ?? '';
+            next.top_attribute    = next.top_attribute ?? 'position';
+            next.bottom_attribute = next.bottom_attribute ?? 'tilt_position';
           } else {
             delete next.entity;
             delete next.top_attribute;
