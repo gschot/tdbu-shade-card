@@ -57,8 +57,8 @@ The card shows a scaled window visualization with the two wooden rails and the s
 > The included GitHub Actions workflow (`.github/workflows/release.yaml`) creates a
 > release automatically whenever you push a tag:
 > ```bash
-> git tag v1.2.5
-> git push origin v1.2.5
+> git tag v1.2.6
+> git push origin v1.2.6
 > ```
 
 ### Manual installation
@@ -196,6 +196,13 @@ The card expects values in the range **0 – 100 %**.
 ---
 
 ## Changelog
+
+### v1.2.6
+- Replaced `ha-entity-picker` with a native `<input type="text">` + `<datalist>` for entity selection — guarantees the picker always renders regardless of HA load order or Lit upgrade timing
+- Replaced `ha-textfield` with styled native `<input>` elements
+- Replaced `ha-switch` with CSS-styled native checkboxes
+- Entity datalists are pre-filtered by domain and populated from `hass.states`; updated in-place when HA state changes
+- Re-renders when `hass` is first received so entity lists are always populated
 
 ### v1.2.5
 - Fixed missing `Register` block and IIFE closure (`})()`) that were accidentally dropped during the v1.2.4 editor rewrite — the card and editor were not registered in HA in that build

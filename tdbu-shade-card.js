@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.2.5';
+  const VERSION = '1.2.6';
   const TAG     = 'tdbu-shade-card';
 
   /* ------------------------------------------------------------------ */
@@ -654,8 +654,15 @@
     }
 
     set hass (hass) {
+      const wasNull = !this._hass;
       this._hass = hass;
-      this.shadowRoot.querySelectorAll('ha-entity-picker').forEach(el => { el.hass = hass; });
+      if (wasNull) {
+        // First time hass arrives: re-render so entity datalists are populated
+        this._render();
+      } else {
+        // Subsequent HA state updates: refresh datalists in-place (no full re-render)
+        this._refreshDataLists();
+      }
     }
 
     _fire () {
@@ -669,65 +676,165 @@
       this._fire();
     }
 
-    // Creates a ha-entity-picker via document.createElement so the custom element
-    // is upgraded immediately (it is already registered by HA) and properties can
-    // be set synchronously before DOM insertion  no rAF timing hacks needed.
-    _makePicker (id, label, domains, currentValue) {
-      const el = document.createElement('ha-entity-picker');
-      el.id                = id;
-      el.label             = label;
-      el.includeDomains    = domains;
-      el.allowCustomEntity = true;
-      el.value             = currentValue ?? '';
-      if (this._hass) el.hass = this._hass;
-      el.style.cssText = 'display:block;width:100%;margin-bottom:12px;';
-      el.addEventListener('value-changed', e => {
-        const val = e.detail?.value;
-        if (val !== undefined) this._update({ [id]: val });
+    /* ---- Entity picker: native <input list="..."> + <datalist> -------
+     * Avoids ha-entity-picker entirely — that Lit component can silently
+     * render as nothing when its async upgrade hasn't completed yet.
+     * Native HTML always works, regardless of HA version or load order.
+     * ------------------------------------------------------------------ */
+    _makePickerRow (id, label, domains, currentValue) {
+      const wrap   = document.createElement('div');
+      wrap.className = 'field-row';
+
+      const lbl   = document.createElement('label');
+      lbl.className   = 'field-label';
+      lbl.htmlFor     = id;
+      lbl.textContent = label;
+
+      const listId = `${id}-list`;
+      const input  = document.createElement('input');
+      input.type        = 'text';
+      input.id          = id;
+      input.className   = 'entity-input';
+      input.value       = currentValue ?? '';
+      input.placeholder = 'domain.entity_id';
+      input.setAttribute('list', listId);
+      input.setAttribute('autocomplete', 'off');
+      input.dataset.domains = JSON.stringify(domains);
+      input.addEventListener('change', e => {
+        this._update({ [id]: e.target.value.trim() });
       });
-      return el;
+
+      const dl = document.createElement('datalist');
+      dl.id = listId;
+      this._fillDataList(dl, domains);
+
+      wrap.appendChild(lbl);
+      wrap.appendChild(input);
+      wrap.appendChild(dl);
+      return wrap;
     }
+
+    _fillDataList (dl, domains) {
+      dl.innerHTML = '';
+      if (!this._hass) return;
+      Object.keys(this._hass.states)
+        .filter(id => domains.some(d => id.startsWith(d + '.')))
+        .sort()
+        .forEach(entityId => {
+          const opt  = document.createElement('option');
+          opt.value  = entityId;
+          const name = this._hass.states[entityId]?.attributes?.friendly_name;
+          if (name) opt.label = name;
+          dl.appendChild(opt);
+        });
+    }
+
+    _refreshDataLists () {
+      this.shadowRoot.querySelectorAll('input[data-domains]').forEach(input => {
+        const dl = this.shadowRoot.getElementById(`${input.id}-list`);
+        if (dl) this._fillDataList(dl, JSON.parse(input.dataset.domains));
+      });
+    }
+
+    /* ---- Text / number input row ------------------------------------- */
+
+    _makeTextField (id, label, type, currentValue, opts) {
+      const o    = opts ?? {};
+      const wrap = document.createElement('div');
+      wrap.className = 'field-row';
+
+      const lbl = document.createElement('label');
+      lbl.className   = 'field-label';
+      lbl.htmlFor     = id;
+      lbl.textContent = label;
+
+      const input = document.createElement('input');
+      input.type      = type ?? 'text';
+      input.id        = id;
+      input.className = 'text-input';
+      input.value     = String(currentValue ?? '');
+      if (o.placeholder !== undefined) input.placeholder = o.placeholder;
+      if (o.min         !== undefined) input.min         = String(o.min);
+      if (o.max         !== undefined) input.max         = String(o.max);
+      input.addEventListener('change', e => {
+        if (type === 'number') {
+          const v = parseInt(e.target.value, 10);
+          if (!isNaN(v) && v >= (o.min ?? -Infinity)) this._update({ [id]: v });
+        } else {
+          this._update({ [id]: e.target.value.trim() || (o.fallback ?? '') });
+        }
+      });
+
+      wrap.appendChild(lbl);
+      wrap.appendChild(input);
+      return wrap;
+    }
+
+    /* ---- Native <select> row ----------------------------------------- */
 
     _makeSelectRow (id, label, options, currentValue) {
       const wrap = document.createElement('div');
-      wrap.className = 'select-row';
-      const lbl = document.createElement('span');
-      lbl.className = 'select-label';
+      wrap.className = 'field-row';
+
+      const lbl = document.createElement('label');
+      lbl.className   = 'field-label';
+      lbl.htmlFor     = id;
       lbl.textContent = label;
+
       const sel = document.createElement('select');
-      sel.id = id;
+      sel.id        = id;
       sel.className = 'native-select';
       options.forEach(([val, txt]) => {
-        const opt = document.createElement('option');
-        opt.value = val; opt.text = txt; opt.selected = (val === currentValue);
+        const opt    = document.createElement('option');
+        opt.value    = val;
+        opt.text     = txt;
+        opt.selected = (val === currentValue);
         sel.appendChild(opt);
       });
       sel.addEventListener('change', e => { this._update({ [id]: e.target.value }); });
+
       wrap.appendChild(lbl);
       wrap.appendChild(sel);
       return wrap;
     }
 
+    /* ---- Toggle row (CSS-styled native checkbox) --------------------- */
+
     _makeToggleRow (id, label, checked) {
-      const row = document.createElement('div');
+      // Wrapping label makes the whole row clickable — no JS needed for toggle
+      const row  = document.createElement('label');
       row.className = 'toggle-row';
+
       const span = document.createElement('span');
-      span.className = 'toggle-label';
+      span.className   = 'toggle-label';
       span.textContent = label;
-      const sw = document.createElement('ha-switch');
-      sw.id = id; sw.checked = !!checked;
-      sw.addEventListener('change', e => { this._update({ [id]: e.target.checked }); });
+
+      const cb = document.createElement('input');
+      cb.type      = 'checkbox';
+      cb.id        = id;
+      cb.className = 'toggle-cb';
+      cb.checked   = !!checked;
+      cb.addEventListener('change', e => { this._update({ [id]: e.target.checked }); });
+
+      const track = document.createElement('span');
+      track.className = 'toggle-track';
+
       row.appendChild(span);
-      row.appendChild(sw);
+      row.appendChild(cb);
+      row.appendChild(track);
       return row;
     }
 
+    /* ---- Section heading --------------------------------------------- */
+
     _makeSection (title) {
       const div = document.createElement('div');
-      div.className = 'section';
+      div.className   = 'section';
       div.textContent = title;
       return div;
     }
+
+    /* ---- Render ------------------------------------------------------ */
 
     _render () {
       const c    = this._config;
@@ -743,11 +850,8 @@
           border-bottom: 1px solid var(--divider-color, #e0e0e0);
           padding-bottom: 4px; margin-top: 4px;
         }
-        .mode-tabs {
-          display: flex;
-          border: 1px solid var(--divider-color, #ccc);
-          border-radius: 6px; overflow: hidden;
-        }
+        /* Mode tabs */
+        .mode-tabs { display: flex; border: 1px solid var(--divider-color, #ccc); border-radius: 6px; overflow: hidden; }
         .mode-tab {
           flex: 1; padding: 9px 6px; border: none; background: transparent;
           cursor: pointer; font-size: 0.85em; font-family: inherit;
@@ -757,43 +861,60 @@
         .mode-tab + .mode-tab { border-left: 1px solid var(--divider-color, #ccc); }
         .mode-tab.active { background: var(--primary-color, #03a9f4); color: #fff; font-weight: 600; }
         .mode-tab:hover:not(.active) { background: var(--secondary-background-color, #f0f0f0); }
-        .select-row { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
-        .select-label { font-size: 0.78em; color: var(--secondary-text-color); padding-left: 2px; }
-        .native-select {
-          width: 100%; padding: 10px 12px;
+        /* Field rows */
+        .field-row { display: flex; flex-direction: column; gap: 4px; }
+        .field-label { font-size: 0.78em; color: var(--secondary-text-color); padding-left: 2px; }
+        .entity-input, .text-input, .native-select {
+          width: 100%; padding: 10px 12px; box-sizing: border-box;
           border: 1px solid var(--divider-color, #ccc); border-radius: 4px;
           background: var(--card-background-color, #fff); color: var(--primary-text-color);
-          font-size: 0.9em; font-family: inherit; cursor: pointer;
+          font-size: 0.9em; font-family: inherit;
         }
-        .native-select:focus { outline: none; border-color: var(--primary-color, #03a9f4); }
-        .toggle-row { display: flex; align-items: center; justify-content: space-between; min-height: 40px; }
-        .toggle-label { font-size: 0.9em; color: var(--primary-text-color); }
-        ha-textfield { display: block; width: 100%; }
+        .entity-input, .text-input { cursor: text; }
+        .native-select { cursor: pointer; }
+        .entity-input:focus, .text-input:focus, .native-select:focus {
+          outline: none; border-color: var(--primary-color, #03a9f4);
+        }
+        /* Toggle (CSS checkbox) */
+        .toggle-row {
+          display: flex; align-items: center; justify-content: space-between;
+          min-height: 40px; cursor: pointer; user-select: none;
+        }
+        .toggle-label { font-size: 0.9em; color: var(--primary-text-color); flex: 1; }
+        .toggle-cb { display: none; }
+        .toggle-track {
+          width: 36px; height: 20px; border-radius: 10px; flex-shrink: 0;
+          background: var(--disabled-color, #bbb); position: relative;
+          transition: background 0.2s;
+        }
+        .toggle-track::after {
+          content: ''; position: absolute; top: 2px; left: 2px;
+          width: 16px; height: 16px; border-radius: 50%;
+          background: #fff; transition: transform 0.2s;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .toggle-cb:checked ~ .toggle-track { background: var(--primary-color, #03a9f4); }
+        .toggle-cb:checked ~ .toggle-track::after { transform: translateX(16px); }
       </style>`;
 
       const form = document.createElement('div');
       form.className = 'form';
 
-      //  General 
+      // ── General ──────────────────────────────────────────────────────
       form.appendChild(this._makeSection('General'));
-      const nameField = document.createElement('ha-textfield');
-      nameField.id = 'name'; nameField.label = 'Card Title';
-      nameField.placeholder = 'Window Shade'; nameField.value = c.name ?? 'Window Shade';
-      nameField.style.cssText = 'display:block;width:100%;';
-      nameField.addEventListener('change', e => {
-        this._update({ name: e.target.value.trim() || 'Window Shade' });
-      });
-      form.appendChild(nameField);
+      form.appendChild(this._makeTextField('name', 'Card Title', 'text',
+        c.name ?? 'Window Shade',
+        { placeholder: 'Window Shade', fallback: 'Window Shade' }));
 
-      //  Entity Mode 
+      // ── Entity Mode ───────────────────────────────────────────────────
       form.appendChild(this._makeSection('Entity Mode'));
       const tabs = document.createElement('div');
       tabs.className = 'mode-tabs';
       [['dual', 'Dual entities<br>(top + bottom)'], ['single', 'Single cover<br>entity']].forEach(([val, html]) => {
-        const btn = document.createElement('button');
-        btn.className = 'mode-tab' + (mode === val ? ' active' : '');
+        const btn        = document.createElement('button');
+        btn.className    = 'mode-tab' + (mode === val ? ' active' : '');
         btn.dataset.mode = val;
-        btn.innerHTML = html;
+        btn.innerHTML    = html;
         btn.addEventListener('click', () => {
           if (val === (('entity' in this._config) ? 'single' : 'dual')) return;
           const next = { ...this._config };
@@ -811,40 +932,32 @@
       });
       form.appendChild(tabs);
 
-      //  Entity picker(s) 
+      // ── Entity picker(s) ─────────────────────────────────────────────
       if (mode === 'dual') {
-        form.appendChild(this._makePicker('top_entity',    'Top Beam Entity',
+        form.appendChild(this._makePickerRow('top_entity',    'Top Beam Entity',
           ['cover', 'number', 'input_number'], c.top_entity));
-        form.appendChild(this._makePicker('bottom_entity', 'Bottom Beam Entity',
+        form.appendChild(this._makePickerRow('bottom_entity', 'Bottom Beam Entity',
           ['cover', 'number', 'input_number'], c.bottom_entity));
       } else {
-        form.appendChild(this._makePicker('entity', 'Cover Entity', ['cover'], c.entity));
+        form.appendChild(this._makePickerRow('entity', 'Cover Entity', ['cover'], c.entity));
         form.appendChild(this._makeSelectRow('top_attribute', 'Top Beam Attribute',
-          [['position','position (current_position)'],
-           ['tilt_position','tilt_position (current_tilt_position)']],
+          [['position',      'position (current_position)'],
+           ['tilt_position', 'tilt_position (current_tilt_position)']],
           c.top_attribute ?? 'position'));
         form.appendChild(this._makeSelectRow('bottom_attribute', 'Bottom Beam Attribute',
-          [['position','position (current_position)'],
-           ['tilt_position','tilt_position (current_tilt_position)']],
+          [['position',      'position (current_position)'],
+           ['tilt_position', 'tilt_position (current_tilt_position)']],
           c.bottom_attribute ?? 'tilt_position'));
       }
 
-      //  Display 
+      // ── Display ───────────────────────────────────────────────────────
       form.appendChild(this._makeSection('Display'));
       form.appendChild(this._makeToggleRow('show_percentages', 'Show percentages on beams', c.show_percentages));
       form.appendChild(this._makeToggleRow('show_controls',    'Show arrow controls',       c.show_controls));
-      const stepField = document.createElement('ha-textfield');
-      stepField.id = 'step'; stepField.label = 'Step size for arrow controls (%)';
-      stepField.type = 'number'; stepField.min = '1'; stepField.max = '50';
-      stepField.value = String(c.step ?? 5);
-      stepField.style.cssText = 'display:block;width:100%;';
-      stepField.addEventListener('change', e => {
-        const v = parseInt(e.target.value, 10);
-        if (!isNaN(v) && v >= 1) this._update({ step: v });
-      });
-      form.appendChild(stepField);
+      form.appendChild(this._makeTextField('step', 'Step size for arrow controls (%)', 'number',
+        c.step ?? 5, { min: 1, max: 50 }));
 
-      //  Direction 
+      // ── Direction ─────────────────────────────────────────────────────
       form.appendChild(this._makeSection('Direction'));
       form.appendChild(this._makeToggleRow('invert_top',    'Invert top beam direction',    c.invert_top));
       form.appendChild(this._makeToggleRow('invert_bottom', 'Invert bottom beam direction', c.invert_bottom));
