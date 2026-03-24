@@ -1,8 +1,6 @@
 # TDBU Shade Card
 
-<p align="center">
-  <img src="assets/overview.svg" alt="TDBU Shade Card animated overview" width="460"/>
-</p>
+![TDBU Shade Card animated overview](https://raw.githubusercontent.com/gschot/tdbu-shade-card/master/assets/overview.svg)
 
 A custom Lovelace card for Home Assistant that provides a **visual, interactive representation** of a Top-Down Bottom-Up (TDBU) shade.
 
@@ -212,15 +210,10 @@ The card expects values in the range **0 – 100 %**.
 
 Four built-in themes, selectable via `theme:` or the visual editor:
 
-<p align="center">
-  <img src="assets/theme-wood.svg"    alt="Natural Wood theme"  width="160"/>
-  &nbsp;&nbsp;
-  <img src="assets/theme-modern.svg"  alt="Modern White theme"  width="160"/>
-  &nbsp;&nbsp;
-  <img src="assets/theme-minimal.svg" alt="Minimal theme"       width="160"/>
-  &nbsp;&nbsp;
-  <img src="assets/theme-dark.svg"    alt="Dark theme"          width="160"/>
-</p>
+![Natural Wood](https://raw.githubusercontent.com/gschot/tdbu-shade-card/master/assets/theme-wood.svg)
+![Modern White](https://raw.githubusercontent.com/gschot/tdbu-shade-card/master/assets/theme-modern.svg)
+![Minimal](https://raw.githubusercontent.com/gschot/tdbu-shade-card/master/assets/theme-minimal.svg)
+![Dark](https://raw.githubusercontent.com/gschot/tdbu-shade-card/master/assets/theme-dark.svg)
 
 | Key | Description |
 |-----|-------------|
