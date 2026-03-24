@@ -19,12 +19,13 @@ A TDBU shade has two independently moveable beams:
 
 The shade fabric occupies the space between the two beams.
 
-The card supports **two entity modes**:
+The card supports **three entity modes**:
 
 | Mode | When to use |
 |------|-------------|
 | **Dual entities** | Your integration exposes a separate entity per beam (most common) |
 | **Single cover entity** | One cover entity uses `position` for the top beam and `tilt_position` for the bottom beam |
+| **Hybrid** | Control (sending commands) and state feedback (reading position) use different entities |
 
 The card shows a scaled window visualization with the two wooden rails and the shade fabric between them. You can **drag** either beam to change its position, use optional **arrow buttons** for precise stepping, and optionally show the **percentage** values on the beams.
 
@@ -38,7 +39,8 @@ The card shows a scaled window visualization with the two wooden rails and the s
 - Smooth **CSS animation** when entity values change externally
 - Optional **arrow-button controls** per beam (▲/▼)
 - Optional **percentage display** on each beam
-- Works with `cover`, `number`, and `input_number` entities
+- Works with `cover`, `number`, `input_number`, and `sensor` entities
+- **Hybrid mode** — send commands to one entity set, read position feedback from a different entity set
 - Respects Home Assistant theme colors (`--primary-color`, etc.)
 
 ---
@@ -77,6 +79,38 @@ show_percentages: false   # optional
 show_controls: false      # optional
 step: 5                   # optional — % per button click
 ```
+
+### Mode C — Hybrid (separate control and state entities)
+
+Use this when the entity you send commands to differs from the entity that reflects
+the actual position (e.g. a KNX actuator address vs. a feedback sensor).
+
+```yaml
+type: custom:tdbu-shade-card
+# Control — used for drag/button commands
+top_entity: input_number.shade_top
+bottom_entity: input_number.shade_bottom
+# State — used to read the actual position (can be different entities)
+top_state_entity: sensor.shade_top_position
+bottom_state_entity: sensor.shade_bottom_position
+```
+
+You can also mix **single** control with **dual** state (or any combination):
+
+```yaml
+type: custom:tdbu-shade-card
+# Single cover entity for control
+entity: cover.my_tdbu_shade
+# Single cover entity for state feedback (different entity)
+state_entity: cover.my_tdbu_shade_feedback
+```
+
+State entity reading priority per beam:
+1. `top_state_entity` / `bottom_state_entity` — individual sensors per beam
+2. `state_entity` — one cover/sensor for both beams
+3. Falls back to the control entity when no state entity is configured
+
+---
 
 ### Mode B — Single cover entity (position + tilt)
 
@@ -130,6 +164,9 @@ Inversion works in both dual-entity and single-entity mode.
 | `entity` | — | Single cover entity (alternative to dual-entity mode) |
 | `top_entity` | — | Entity for the top beam |
 | `bottom_entity` | — | Entity for the bottom beam |
+| `state_entity` | — | Hybrid: single entity to *read* position for both beams (overrides control entity for state) |
+| `top_state_entity` | — | Hybrid: entity to *read* top beam position |
+| `bottom_state_entity` | — | Hybrid: entity to *read* bottom beam position |
 | `name` | `'Window Shade'` | Card title |
 | `show_percentages` | `false` | Show % label on each beam |
 | `show_controls` | `false` | Show ▲/▼ arrow buttons below the window |
@@ -159,6 +196,8 @@ The card expects values in the range **0 – 100 %**.
 | `cover` | `cover.set_cover_position` with `position:` |
 | `number` | `number.set_value` with `value:` |
 | `input_number` | `input_number.set_value` with `value:` |
+
+> **Hybrid mode state entities** additionally support `sensor` (read-only; position is taken from the numeric state value).
 
 ### Services called (single-entity mode)
 
@@ -193,6 +232,15 @@ Four built-in themes, selectable via `theme:` or the visual editor:
 ---
 
 ## Changelog
+
+### v1.4.0
+- **Hybrid entity mode** — control (sending commands) and state feedback (reading position) can now use completely different entities
+  - `state_entity` — single cover/sensor whose position is used for both beam display updates
+  - `top_state_entity` / `bottom_state_entity` — individual sensors per beam for full flexibility
+  - All combinations work: single-entity control + dual-sensor state, dual-entity control + single-sensor state, etc.
+  - State entities support `cover`, `number`, `input_number`, and `sensor` domains
+- New **Hybrid** tab in the visual card editor with separate sub-tabs for **Control** (Single / Dual) and **State** (Single / Dual)
+- Version bump to **1.4.0**
 
 ### v1.3.1
 - **Multi-language support** — all card UI strings (beam labels, aria-labels, trigger summary) and all editor UI strings (section headers, field labels, mode tabs, theme names) are now translated at runtime using Home Assistant's active language (`hass.language`)
