@@ -113,7 +113,7 @@
       keySplines="0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0 0 0 0"/>
   </line>
   <!-- Top beam label "20%" - visible in phases A and C -->
-  <text x="130" y="106" text-anchor="middle"
+  <text x="228" y="106" text-anchor="end"
       font-family="'Segoe UI',sans-serif" font-size="8.5" font-weight="700" fill="rgba(255,255,255,.90)">
     <animate attributeName="y" calcMode="spline" dur="9s" repeatCount="indefinite"
       values="106;106;162;162;106;106;106"
@@ -125,7 +125,7 @@
     20%
   </text>
   <!-- Top beam label "45%" - visible in phase B only -->
-  <text x="130" y="106" text-anchor="middle" opacity="0"
+  <text x="228" y="106" text-anchor="end" opacity="0"
       font-family="'Segoe UI',sans-serif" font-size="8.5" font-weight="700" fill="rgba(255,255,255,.90)">
     <animate attributeName="y" calcMode="spline" dur="9s" repeatCount="indefinite"
       values="106;106;162;162;106;106;106"
@@ -156,7 +156,7 @@
       keySplines="0 0 0 0;0 0 0 0;0 0 0 0;0.42 0 0.58 1;0 0 0 0;0.42 0 0.58 1"/>
   </line>
   <!-- Bottom beam label "25%" - visible in phases A and B -->
-  <text x="130" y="215" text-anchor="middle"
+  <text x="228" y="215" text-anchor="end"
       font-family="'Segoe UI',sans-serif" font-size="8.5" font-weight="700" fill="rgba(255,255,255,.90)">
     <animate attributeName="y" calcMode="spline" dur="9s" repeatCount="indefinite"
       values="215;215;215;215;204;204;215"
@@ -168,7 +168,7 @@
     25%
   </text>
   <!-- Bottom beam label "30%" - visible in phase C only -->
-  <text x="130" y="215" text-anchor="middle" opacity="0"
+  <text x="228" y="215" text-anchor="end" opacity="0"
       font-family="'Segoe UI',sans-serif" font-size="8.5" font-weight="700" fill="rgba(255,255,255,.90)">
     <animate attributeName="y" calcMode="spline" dur="9s" repeatCount="indefinite"
       values="215;215;215;215;204;204;215"
