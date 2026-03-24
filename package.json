@@ -1,6 +1,6 @@
 {
   "name": "tdbu-shade-card",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Home Assistant Lovelace card for Top-Down Bottom-Up (TDBU) shades",
   "main": "tdbu-shade-card.js",
   "keywords": [
@@ -16,6 +16,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/tdbu-shade-card"
+    "url": "https://github.com/gschot/tdbu-shade-card"
   }
 }

@@ -57,8 +57,8 @@ The card shows a scaled window visualization with the two wooden rails and the s
 > The included GitHub Actions workflow (`.github/workflows/release.yaml`) creates a
 > release automatically whenever you push a tag:
 > ```bash
-> git tag v1.2.3
-> git push origin v1.2.3
+> git tag v1.2.4
+> git push origin v1.2.4
 > ```
 
 ### Manual installation
@@ -196,6 +196,12 @@ The card expects values in the range **0 – 100 %**.
 ---
 
 ## Changelog
+
+### v1.2.4
+- Completely rewrote the card editor UI to build all elements programmatically via `document.createElement` instead of via `innerHTML` strings
+- This fixes `ha-entity-picker` elements never rendering: when created with `createElement` the element is upgraded immediately (already registered by HA) so `hass`, `includeDomains` and `value` can be set synchronously — no deferred `requestAnimationFrame` hacks needed
+- Dual mode now shows two entity pickers (top beam + bottom beam), single mode shows one cover entity picker plus attribute selects
+- `set hass()` now pushes `hass` directly to all pickers in the shadow root via `querySelectorAll`
 
 ### v1.2.3
 - Fixed entity pickers not appearing after selecting an entity mode in the card editor

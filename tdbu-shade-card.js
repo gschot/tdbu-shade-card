@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TDBU Shade Card for Home Assistant Lovelace
  * Visual representation of a Top-Down Bottom-Up shade with two independently
  * controllable beams. Supports dragging, arrow controls and percentage display.
@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.2.3';
+  const VERSION = '1.2.4';
   const TAG     = 'tdbu-shade-card';
 
   /* ------------------------------------------------------------------ */
@@ -655,22 +655,12 @@
 
     set hass (hass) {
       this._hass = hass;
-      // Push hass to pickers \u2014 defer in case Lit hasn't upgraded them yet
-      requestAnimationFrame(() => {
-        for (const id of ['entity', 'top_entity', 'bottom_entity']) {
-          const el = this.shadowRoot.getElementById(id);
-          if (el) el.hass = hass;
-        }
-      });
+      this.shadowRoot.querySelectorAll('ha-entity-picker').forEach(el => { el.hass = hass; });
     }
-
-    /* ---- Fire config-changed event ----------------------------------- */
 
     _fire () {
       this.dispatchEvent(new CustomEvent('config-changed', {
-        detail  : { config: { ...this._config } },
-        bubbles : true,
-        composed: true,
+        detail: { config: { ...this._config } }, bubbles: true, composed: true,
       }));
     }
 
@@ -679,344 +669,186 @@
       this._fire();
     }
 
-    /* ---- Render ------------------------------------------------------ */
+    // Creates a ha-entity-picker via document.createElement so the custom element
+    // is upgraded immediately (it is already registered by HA) and properties can
+    // be set synchronously before DOM insertion  no rAF timing hacks needed.
+    _makePicker (id, label, domains, currentValue) {
+      const el = document.createElement('ha-entity-picker');
+      el.id                = id;
+      el.label             = label;
+      el.includeDomains    = domains;
+      el.allowCustomEntity = true;
+      el.value             = currentValue ?? '';
+      if (this._hass) el.hass = this._hass;
+      el.style.cssText = 'display:block;width:100%;margin-bottom:12px;';
+      el.addEventListener('value-changed', e => {
+        const val = e.detail?.value;
+        if (val !== undefined) this._update({ [id]: val });
+      });
+      return el;
+    }
+
+    _makeSelectRow (id, label, options, currentValue) {
+      const wrap = document.createElement('div');
+      wrap.className = 'select-row';
+      const lbl = document.createElement('span');
+      lbl.className = 'select-label';
+      lbl.textContent = label;
+      const sel = document.createElement('select');
+      sel.id = id;
+      sel.className = 'native-select';
+      options.forEach(([val, txt]) => {
+        const opt = document.createElement('option');
+        opt.value = val; opt.text = txt; opt.selected = (val === currentValue);
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', e => { this._update({ [id]: e.target.value }); });
+      wrap.appendChild(lbl);
+      wrap.appendChild(sel);
+      return wrap;
+    }
+
+    _makeToggleRow (id, label, checked) {
+      const row = document.createElement('div');
+      row.className = 'toggle-row';
+      const span = document.createElement('span');
+      span.className = 'toggle-label';
+      span.textContent = label;
+      const sw = document.createElement('ha-switch');
+      sw.id = id; sw.checked = !!checked;
+      sw.addEventListener('change', e => { this._update({ [id]: e.target.checked }); });
+      row.appendChild(span);
+      row.appendChild(sw);
+      return row;
+    }
+
+    _makeSection (title) {
+      const div = document.createElement('div');
+      div.className = 'section';
+      div.textContent = title;
+      return div;
+    }
 
     _render () {
       const c    = this._config;
-      // Use key presence — entity:'' is falsy but still means single mode
       const mode = ('entity' in c) ? 'single' : 'dual';
+      const sr   = this.shadowRoot;
 
-      this.shadowRoot.innerHTML = `
-        <style>
-          :host { display: block; }
-
-          .form {
-            display       : flex;
-            flex-direction: column;
-            gap           : 14px;
-            padding       : 4px 0;
-          }
-
-          .section {
-            font-size     : 0.72em;
-            font-weight   : 600;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color         : var(--secondary-text-color);
-            border-bottom : 1px solid var(--divider-color, #e0e0e0);
-            padding-bottom: 4px;
-            margin-top    : 4px;
-          }
-
-          /* ── Mode toggle tabs ── */
-          .mode-tabs {
-            display      : flex;
-            border       : 1px solid var(--divider-color, #ccc);
-            border-radius: 6px;
-            overflow     : hidden;
-          }
-
-          .mode-tab {
-            flex        : 1;
-            padding     : 9px 6px;
-            border      : none;
-            background  : transparent;
-            cursor      : pointer;
-            font-size   : 0.85em;
-            font-family : inherit;
-            color       : var(--secondary-text-color);
-            transition  : background 0.15s, color 0.15s;
-            line-height : 1.3;
-          }
-
-          .mode-tab + .mode-tab {
-            border-left: 1px solid var(--divider-color, #ccc);
-          }
-
-          .mode-tab.active {
-            background : var(--primary-color, #03a9f4);
-            color      : #fff;
-            font-weight: 600;
-          }
-
-          .mode-tab:hover:not(.active) {
-            background: var(--secondary-background-color, #f0f0f0);
-          }
-
-          /* ── Native <select> ── */
-          .select-row {
-            display       : flex;
-            flex-direction: column;
-            gap           : 4px;
-          }
-
-          .select-label {
-            font-size   : 0.78em;
-            color       : var(--secondary-text-color);
-            padding-left: 2px;
-          }
-
-          .native-select {
-            width        : 100%;
-            padding      : 10px 12px;
-            border       : 1px solid var(--divider-color, #ccc);
-            border-radius: 4px;
-            background   : var(--card-background-color, #fff);
-            color        : var(--primary-text-color);
-            font-size    : 0.9em;
-            font-family  : inherit;
-            cursor       : pointer;
-          }
-
-          .native-select:focus {
-            outline     : none;
-            border-color: var(--primary-color, #03a9f4);
-          }
-
-          /* ── Toggle rows ── */
-          .toggle-row {
-            display        : flex;
-            align-items    : center;
-            justify-content: space-between;
-            min-height     : 40px;
-          }
-
-          .toggle-label {
-            font-size: 0.9em;
-            color    : var(--primary-text-color);
-          }
-
-          ha-entity-picker,
-          ha-textfield { display: block; width: 100%; }
-
-          [hidden] { display: none !important; }
-        </style>
-
-        <div class="form">
-
-          <div class="section">General</div>
-
-          <ha-textfield
-            id         ="name"
-            label      ="Card Title"
-            placeholder="Window Shade"
-          ></ha-textfield>
-
-          <div class="section">Entity Mode</div>
-
-          <div class="mode-tabs">
-            <button class="mode-tab ${mode === 'dual'   ? 'active' : ''}" data-mode="dual">
-              Dual entities<br>(top + bottom)
-            </button>
-            <button class="mode-tab ${mode === 'single' ? 'active' : ''}" data-mode="single">
-              Single cover<br>entity
-            </button>
-          </div>
-
-          <!-- ── Dual-entity fields ─────────────────────────────────── -->
-          <div id="dual-fields" ${mode !== 'dual' ? 'hidden' : ''}>
-            <ha-entity-picker id="top_entity"    label="Top Beam Entity"></ha-entity-picker>
-            <br>
-            <ha-entity-picker id="bottom_entity" label="Bottom Beam Entity"></ha-entity-picker>
-          </div>
-
-          <!-- ── Single-entity fields ───────────────────────────────── -->
-          <div id="single-fields" ${mode !== 'single' ? 'hidden' : ''}>
-            <ha-entity-picker id="entity" label="Cover Entity"></ha-entity-picker>
-
-            <br>
-
-            <div class="select-row">
-              <span class="select-label">Top Beam Attribute</span>
-              <select id="top_attribute" class="native-select">
-                <option value="position">position (current_position)</option>
-                <option value="tilt_position">tilt_position (current_tilt_position)</option>
-              </select>
-            </div>
-
-            <br>
-
-            <div class="select-row">
-              <span class="select-label">Bottom Beam Attribute</span>
-              <select id="bottom_attribute" class="native-select">
-                <option value="position">position (current_position)</option>
-                <option value="tilt_position">tilt_position (current_tilt_position)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="section">Display</div>
-
-          <div class="toggle-row">
-            <span class="toggle-label">Show percentages on beams</span>
-            <ha-switch id="show_percentages"></ha-switch>
-          </div>
-
-          <div class="toggle-row">
-            <span class="toggle-label">Show arrow controls</span>
-            <ha-switch id="show_controls"></ha-switch>
-          </div>
-
-          <ha-textfield
-            id   ="step"
-            label="Step size for arrow controls (%)"
-            type ="number"
-            min  ="1"
-            max  ="50"
-          ></ha-textfield>
-
-          <div class="section">Direction</div>
-
-          <div class="toggle-row">
-            <span class="toggle-label">Invert top beam direction</span>
-            <ha-switch id="invert_top"></ha-switch>
-          </div>
-
-          <div class="toggle-row">
-            <span class="toggle-label">Invert bottom beam direction</span>
-            <ha-switch id="invert_bottom"></ha-switch>
-          </div>
-
-        </div>
-      `;
-
-      this._applyValues();
-      this._wireEditor();
-    }
-
-    /* ---- Set element properties after innerHTML ---------------------- */
-
-    _applyValues () {
-      const c  = this._config;
-      const sr = this.shadowRoot;
-
-      // Text fields — synchronous, no upgrade needed
-      const nameEl = sr.getElementById('name');
-      if (nameEl) nameEl.value = c.name ?? 'Window Shade';
-
-      const stepEl = sr.getElementById('step');
-      if (stepEl) stepEl.value = String(c.step ?? 5);
-
-      // Native attribute selects — synchronous
-      const topAttrEl = sr.getElementById('top_attribute');
-      if (topAttrEl) topAttrEl.value = c.top_attribute ?? 'position';
-
-      const botAttrEl = sr.getElementById('bottom_attribute');
-      if (botAttrEl) botAttrEl.value = c.bottom_attribute ?? 'tilt_position';
-
-      // Switches — synchronous
-      for (const id of ['show_percentages', 'show_controls', 'invert_top', 'invert_bottom']) {
-        const el = sr.getElementById(id);
-        if (el) el.checked = !!c[id];
-      }
-
-      // ha-entity-picker is a Lit element — properties must be set after upgrade.
-      // Two rAF frames ensure connectedCallback + first Lit render have completed.
-      const applyPickers = () => {
-        const pickerCfg = [
-          ['top_entity',    ['cover', 'number', 'input_number']],
-          ['bottom_entity', ['cover', 'number', 'input_number']],
-          ['entity',        ['cover']],
-        ];
-        for (const [id, domains] of pickerCfg) {
-          const el = sr.getElementById(id);
-          if (!el) continue;
-          if (this._hass) el.hass = this._hass;
-          el.includeDomains = domains;
-          el.value = c[id] ?? '';
+      sr.innerHTML = `<style>
+        :host { display: block; }
+        .form { display: flex; flex-direction: column; gap: 14px; padding: 4px 0; }
+        .section {
+          font-size: 0.72em; font-weight: 600; letter-spacing: 0.06em;
+          text-transform: uppercase; color: var(--secondary-text-color);
+          border-bottom: 1px solid var(--divider-color, #e0e0e0);
+          padding-bottom: 4px; margin-top: 4px;
         }
-      };
-      requestAnimationFrame(() => requestAnimationFrame(applyPickers));
-    }
+        .mode-tabs {
+          display: flex;
+          border: 1px solid var(--divider-color, #ccc);
+          border-radius: 6px; overflow: hidden;
+        }
+        .mode-tab {
+          flex: 1; padding: 9px 6px; border: none; background: transparent;
+          cursor: pointer; font-size: 0.85em; font-family: inherit;
+          color: var(--secondary-text-color);
+          transition: background 0.15s, color 0.15s; line-height: 1.3;
+        }
+        .mode-tab + .mode-tab { border-left: 1px solid var(--divider-color, #ccc); }
+        .mode-tab.active { background: var(--primary-color, #03a9f4); color: #fff; font-weight: 600; }
+        .mode-tab:hover:not(.active) { background: var(--secondary-background-color, #f0f0f0); }
+        .select-row { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+        .select-label { font-size: 0.78em; color: var(--secondary-text-color); padding-left: 2px; }
+        .native-select {
+          width: 100%; padding: 10px 12px;
+          border: 1px solid var(--divider-color, #ccc); border-radius: 4px;
+          background: var(--card-background-color, #fff); color: var(--primary-text-color);
+          font-size: 0.9em; font-family: inherit; cursor: pointer;
+        }
+        .native-select:focus { outline: none; border-color: var(--primary-color, #03a9f4); }
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; min-height: 40px; }
+        .toggle-label { font-size: 0.9em; color: var(--primary-text-color); }
+        ha-textfield { display: block; width: 100%; }
+      </style>`;
 
-    /* ---- Attach editor event listeners ------------------------------- */
+      const form = document.createElement('div');
+      form.className = 'form';
 
-    _wireEditor () {
-      const sr = this.shadowRoot;
-
-      // Card title
-      sr.getElementById('name')?.addEventListener('change', e => {
+      //  General 
+      form.appendChild(this._makeSection('General'));
+      const nameField = document.createElement('ha-textfield');
+      nameField.id = 'name'; nameField.label = 'Card Title';
+      nameField.placeholder = 'Window Shade'; nameField.value = c.name ?? 'Window Shade';
+      nameField.style.cssText = 'display:block;width:100%;';
+      nameField.addEventListener('change', e => {
         this._update({ name: e.target.value.trim() || 'Window Shade' });
       });
+      form.appendChild(nameField);
 
-      // Mode toggle buttons — plain click, no HA component involved
-      sr.querySelectorAll('.mode-tab').forEach(btn => {
+      //  Entity Mode 
+      form.appendChild(this._makeSection('Entity Mode'));
+      const tabs = document.createElement('div');
+      tabs.className = 'mode-tabs';
+      [['dual', 'Dual entities<br>(top + bottom)'], ['single', 'Single cover<br>entity']].forEach(([val, html]) => {
+        const btn = document.createElement('button');
+        btn.className = 'mode-tab' + (mode === val ? ' active' : '');
+        btn.dataset.mode = val;
+        btn.innerHTML = html;
         btn.addEventListener('click', () => {
-          const val  = btn.dataset.mode;
-          if (val === (('entity' in this._config) ? 'single' : 'dual')) return; // no-op
+          if (val === (('entity' in this._config) ? 'single' : 'dual')) return;
           const next = { ...this._config };
           if (val === 'single') {
-            delete next.top_entity;
-            delete next.bottom_entity;
-            next.entity           = next.entity        ?? '';
-            next.top_attribute    = next.top_attribute ?? 'position';
+            delete next.top_entity; delete next.bottom_entity;
+            next.entity           = next.entity           ?? '';
+            next.top_attribute    = next.top_attribute    ?? 'position';
             next.bottom_attribute = next.bottom_attribute ?? 'tilt_position';
           } else {
-            delete next.entity;
-            delete next.top_attribute;
-            delete next.bottom_attribute;
+            delete next.entity; delete next.top_attribute; delete next.bottom_attribute;
           }
-          this._config = next;
-          this._fire();
-          this._render();
+          this._config = next; this._fire(); this._render();
         });
+        tabs.appendChild(btn);
       });
+      form.appendChild(tabs);
 
-      // Entity pickers
-      for (const id of ['entity', 'top_entity', 'bottom_entity']) {
-        sr.getElementById(id)?.addEventListener('value-changed', e => {
-          const val = e.detail?.value;
-          if (val !== undefined) this._update({ [id]: val });
-        });
+      //  Entity picker(s) 
+      if (mode === 'dual') {
+        form.appendChild(this._makePicker('top_entity',    'Top Beam Entity',
+          ['cover', 'number', 'input_number'], c.top_entity));
+        form.appendChild(this._makePicker('bottom_entity', 'Bottom Beam Entity',
+          ['cover', 'number', 'input_number'], c.bottom_entity));
+      } else {
+        form.appendChild(this._makePicker('entity', 'Cover Entity', ['cover'], c.entity));
+        form.appendChild(this._makeSelectRow('top_attribute', 'Top Beam Attribute',
+          [['position','position (current_position)'],
+           ['tilt_position','tilt_position (current_tilt_position)']],
+          c.top_attribute ?? 'position'));
+        form.appendChild(this._makeSelectRow('bottom_attribute', 'Bottom Beam Attribute',
+          [['position','position (current_position)'],
+           ['tilt_position','tilt_position (current_tilt_position)']],
+          c.bottom_attribute ?? 'tilt_position'));
       }
 
-      // Native attribute selects
-      for (const id of ['top_attribute', 'bottom_attribute']) {
-        sr.getElementById(id)?.addEventListener('change', e => {
-          this._update({ [id]: e.target.value });
-        });
-      }
-
-      // Step size
-      sr.getElementById('step')?.addEventListener('change', e => {
+      //  Display 
+      form.appendChild(this._makeSection('Display'));
+      form.appendChild(this._makeToggleRow('show_percentages', 'Show percentages on beams', c.show_percentages));
+      form.appendChild(this._makeToggleRow('show_controls',    'Show arrow controls',       c.show_controls));
+      const stepField = document.createElement('ha-textfield');
+      stepField.id = 'step'; stepField.label = 'Step size for arrow controls (%)';
+      stepField.type = 'number'; stepField.min = '1'; stepField.max = '50';
+      stepField.value = String(c.step ?? 5);
+      stepField.style.cssText = 'display:block;width:100%;';
+      stepField.addEventListener('change', e => {
         const v = parseInt(e.target.value, 10);
         if (!isNaN(v) && v >= 1) this._update({ step: v });
       });
+      form.appendChild(stepField);
 
-      // Boolean toggles
-      for (const id of ['show_percentages', 'show_controls', 'invert_top', 'invert_bottom']) {
-        sr.getElementById(id)?.addEventListener('change', e => {
-          this._update({ [id]: e.target.checked });
-        });
-      }
+      //  Direction 
+      form.appendChild(this._makeSection('Direction'));
+      form.appendChild(this._makeToggleRow('invert_top',    'Invert top beam direction',    c.invert_top));
+      form.appendChild(this._makeToggleRow('invert_bottom', 'Invert bottom beam direction', c.invert_bottom));
+
+      sr.appendChild(form);
     }
   }
-
-  /* ------------------------------------------------------------------ */
-  /*  Register                                                            */
-  /* ------------------------------------------------------------------ */
-
-  if (!customElements.get(EDITOR_TAG)) {
-    customElements.define(EDITOR_TAG, TDBUShadeCardEditor);
-  }
-
-  if (!customElements.get(TAG)) {
-    customElements.define(TAG, TDBUShadeCard);
-    console.info(
-      `%c TDBU-SHADE-CARD %c v${VERSION} `,
-      'color: orange; font-weight: bold; background: #000',
-      'color: #fff;    font-weight: bold; background: #555',
-    );
-  }
-
-  window.customCards = window.customCards || [];
-  if (!window.customCards.some(c => c.type === TAG)) {
-    window.customCards.push({
-      type            : TAG,
-      name            : 'TDBU Shade Card',
-      description     : 'Visual card for Top-Down Bottom-Up (TDBU) shades with interactive draggable beams',
-      preview         : true,
-      documentationURL: 'https://github.com/your-username/tdbu-shade-card',
-    });
-  }
-})();
