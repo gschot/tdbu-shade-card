@@ -57,8 +57,8 @@ The card shows a scaled window visualization with the two wooden rails and the s
 > The included GitHub Actions workflow (`.github/workflows/release.yaml`) creates a
 > release automatically whenever you push a tag:
 > ```bash
-> git tag v1.2.0
-> git push origin v1.2.0
+> git tag v1.2.2
+> git push origin v1.2.2
 > ```
 
 ### Manual installation
@@ -196,6 +196,12 @@ The card expects values in the range **0 – 100 %**.
 ---
 
 ## Changelog
+
+### v1.2.2
+- Fixed mode selector in the card editor not responding to user interaction (replaced `ha-select`/`mwc-list-item` with reliable `<button>` tabs)
+- Entity pickers now filter by domain: dual-mode pickers show `cover`, `number` and `input_number`; single-mode picker shows `cover` only
+- Replaced `ha-select` attribute dropdowns with native `<select>` elements — works in all HA versions
+- Improved hidden-section handling using the native `hidden` attribute instead of a CSS class
 
 ### v1.2.0
 - Added **visual configuration UI** (`getConfigElement`) — all card options can now be configured through the Lovelace card editor without editing YAML manually

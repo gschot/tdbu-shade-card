@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.2.0';
+  const VERSION = '1.2.2';
   const TAG     = 'tdbu-shade-card';
 
   /* ------------------------------------------------------------------ */
@@ -655,7 +655,7 @@
 
     set hass (hass) {
       this._hass = hass;
-      // Push hass down to entity pickers that are already in the DOM
+      // Push hass down to entity pickers already in the DOM
       for (const id of ['entity', 'top_entity', 'bottom_entity']) {
         const el = this.shadowRoot.getElementById(id);
         if (el) el.hass = hass;
@@ -690,12 +690,12 @@
           .form {
             display       : flex;
             flex-direction: column;
-            gap           : 16px;
+            gap           : 14px;
             padding       : 4px 0;
           }
 
           .section {
-            font-size     : 0.75em;
+            font-size     : 0.72em;
             font-weight   : 600;
             letter-spacing: 0.06em;
             text-transform: uppercase;
@@ -705,23 +705,88 @@
             margin-top    : 4px;
           }
 
-          .row-inline {
+          /* ── Mode toggle tabs ── */
+          .mode-tabs {
+            display      : flex;
+            border       : 1px solid var(--divider-color, #ccc);
+            border-radius: 6px;
+            overflow     : hidden;
+          }
+
+          .mode-tab {
+            flex        : 1;
+            padding     : 9px 6px;
+            border      : none;
+            background  : transparent;
+            cursor      : pointer;
+            font-size   : 0.85em;
+            font-family : inherit;
+            color       : var(--secondary-text-color);
+            transition  : background 0.15s, color 0.15s;
+            line-height : 1.3;
+          }
+
+          .mode-tab + .mode-tab {
+            border-left: 1px solid var(--divider-color, #ccc);
+          }
+
+          .mode-tab.active {
+            background : var(--primary-color, #03a9f4);
+            color      : #fff;
+            font-weight: 600;
+          }
+
+          .mode-tab:hover:not(.active) {
+            background: var(--secondary-background-color, #f0f0f0);
+          }
+
+          /* ── Native <select> ── */
+          .select-row {
+            display       : flex;
+            flex-direction: column;
+            gap           : 4px;
+          }
+
+          .select-label {
+            font-size   : 0.78em;
+            color       : var(--secondary-text-color);
+            padding-left: 2px;
+          }
+
+          .native-select {
+            width        : 100%;
+            padding      : 10px 12px;
+            border       : 1px solid var(--divider-color, #ccc);
+            border-radius: 4px;
+            background   : var(--card-background-color, #fff);
+            color        : var(--primary-text-color);
+            font-size    : 0.9em;
+            font-family  : inherit;
+            cursor       : pointer;
+          }
+
+          .native-select:focus {
+            outline     : none;
+            border-color: var(--primary-color, #03a9f4);
+          }
+
+          /* ── Toggle rows ── */
+          .toggle-row {
             display        : flex;
             align-items    : center;
             justify-content: space-between;
-            padding        : 2px 0;
+            min-height     : 40px;
           }
 
-          .row-inline > label {
+          .toggle-label {
             font-size: 0.9em;
             color    : var(--primary-text-color);
           }
 
-          ha-textfield,
-          ha-select,
-          ha-entity-picker { display: block; width: 100%; }
+          ha-entity-picker,
+          ha-textfield { display: block; width: 100%; }
 
-          .hidden { display: none !important; }
+          [hidden] { display: none !important; }
         </style>
 
         <div class="form">
@@ -729,73 +794,69 @@
           <div class="section">General</div>
 
           <ha-textfield
-            id          ="name"
-            label       ="Card Title"
-            placeholder ="Window Shade"
+            id         ="name"
+            label      ="Card Title"
+            placeholder="Window Shade"
           ></ha-textfield>
 
           <div class="section">Entity Mode</div>
 
-          <ha-select id="mode" label="Mode">
-            <mwc-list-item value="dual">Dual entities (separate top / bottom)</mwc-list-item>
-            <mwc-list-item value="single">Single cover entity</mwc-list-item>
-          </ha-select>
-
-          <!-- ── Dual-entity fields ───────────────────────────────────── -->
-          <div id="dual-fields" class="${mode === 'dual' ? '' : 'hidden'}">
-            <ha-entity-picker
-              id                 ="top_entity"
-              label              ="Top Beam Entity"
-              allow-custom-entity
-            ></ha-entity-picker>
-
-            <br>
-
-            <ha-entity-picker
-              id                 ="bottom_entity"
-              label              ="Bottom Beam Entity"
-              allow-custom-entity
-            ></ha-entity-picker>
+          <div class="mode-tabs">
+            <button class="mode-tab ${mode === 'dual'   ? 'active' : ''}" data-mode="dual">
+              Dual entities<br>(top + bottom)
+            </button>
+            <button class="mode-tab ${mode === 'single' ? 'active' : ''}" data-mode="single">
+              Single cover<br>entity
+            </button>
           </div>
 
-          <!-- ── Single-entity fields ─────────────────────────────────── -->
-          <div id="single-fields" class="${mode === 'single' ? '' : 'hidden'}">
-            <ha-entity-picker
-              id                 ="entity"
-              label              ="Cover Entity"
-              allow-custom-entity
-            ></ha-entity-picker>
+          <!-- ── Dual-entity fields ─────────────────────────────────── -->
+          <div id="dual-fields" ${mode !== 'dual' ? 'hidden' : ''}>
+            <ha-entity-picker id="top_entity"    label="Top Beam Entity"></ha-entity-picker>
+            <br>
+            <ha-entity-picker id="bottom_entity" label="Bottom Beam Entity"></ha-entity-picker>
+          </div>
+
+          <!-- ── Single-entity fields ───────────────────────────────── -->
+          <div id="single-fields" ${mode !== 'single' ? 'hidden' : ''}>
+            <ha-entity-picker id="entity" label="Cover Entity"></ha-entity-picker>
 
             <br>
 
-            <ha-select id="top_attribute" label="Top Beam Attribute">
-              <mwc-list-item value="position">Position (current_position)</mwc-list-item>
-              <mwc-list-item value="tilt_position">Tilt (current_tilt_position)</mwc-list-item>
-            </ha-select>
+            <div class="select-row">
+              <span class="select-label">Top Beam Attribute</span>
+              <select id="top_attribute" class="native-select">
+                <option value="position">position (current_position)</option>
+                <option value="tilt_position">tilt_position (current_tilt_position)</option>
+              </select>
+            </div>
 
             <br>
 
-            <ha-select id="bottom_attribute" label="Bottom Beam Attribute">
-              <mwc-list-item value="position">Position (current_position)</mwc-list-item>
-              <mwc-list-item value="tilt_position">Tilt (current_tilt_position)</mwc-list-item>
-            </ha-select>
+            <div class="select-row">
+              <span class="select-label">Bottom Beam Attribute</span>
+              <select id="bottom_attribute" class="native-select">
+                <option value="position">position (current_position)</option>
+                <option value="tilt_position">tilt_position (current_tilt_position)</option>
+              </select>
+            </div>
           </div>
 
           <div class="section">Display</div>
 
-          <div class="row-inline">
-            <label>Show percentages on beams</label>
+          <div class="toggle-row">
+            <span class="toggle-label">Show percentages on beams</span>
             <ha-switch id="show_percentages"></ha-switch>
           </div>
 
-          <div class="row-inline">
-            <label>Show arrow controls</label>
+          <div class="toggle-row">
+            <span class="toggle-label">Show arrow controls</span>
             <ha-switch id="show_controls"></ha-switch>
           </div>
 
           <ha-textfield
             id   ="step"
-            label="Step size for arrow controls"
+            label="Step size for arrow controls (%)"
             type ="number"
             min  ="1"
             max  ="50"
@@ -803,13 +864,13 @@
 
           <div class="section">Direction</div>
 
-          <div class="row-inline">
-            <label>Invert top beam direction</label>
+          <div class="toggle-row">
+            <span class="toggle-label">Invert top beam direction</span>
             <ha-switch id="invert_top"></ha-switch>
           </div>
 
-          <div class="row-inline">
-            <label>Invert bottom beam direction</label>
+          <div class="toggle-row">
+            <span class="toggle-label">Invert bottom beam direction</span>
             <ha-switch id="invert_bottom"></ha-switch>
           </div>
 
@@ -826,40 +887,41 @@
       const c  = this._config;
       const sr = this.shadowRoot;
 
-      // Text fields (value attribute is enough for ha-textfield)
+      // Text fields
       const nameEl = sr.getElementById('name');
       if (nameEl) nameEl.value = c.name ?? 'Window Shade';
 
       const stepEl = sr.getElementById('step');
       if (stepEl) stepEl.value = String(c.step ?? 5);
 
-      // Entity pickers — must be set as JS properties
-      for (const id of ['entity', 'top_entity', 'bottom_entity']) {
+      // Entity pickers — must be set as JS properties because HA uses Lit internals.
+      // Dual pickers accept cover / number / input_number; single picker only cover.
+      const pickerCfg = [
+        ['top_entity',    ['cover', 'number', 'input_number']],
+        ['bottom_entity', ['cover', 'number', 'input_number']],
+        ['entity',        ['cover']],
+      ];
+      for (const [id, domains] of pickerCfg) {
         const el = sr.getElementById(id);
         if (el) {
           if (this._hass) el.hass = this._hass;
+          el.includeDomains = domains;
           el.value = c[id] ?? '';
         }
       }
+
+      // Native attribute selects
+      const topAttrEl = sr.getElementById('top_attribute');
+      if (topAttrEl) topAttrEl.value = c.top_attribute ?? 'position';
+
+      const botAttrEl = sr.getElementById('bottom_attribute');
+      if (botAttrEl) botAttrEl.value = c.bottom_attribute ?? 'tilt_position';
 
       // Switches
       for (const id of ['show_percentages', 'show_controls', 'invert_top', 'invert_bottom']) {
         const el = sr.getElementById(id);
         if (el) el.checked = !!c[id];
       }
-
-      // Selects — use requestAnimationFrame so mwc-list-items are upgraded first
-      requestAnimationFrame(() => {
-        const mode = c.entity ? 'single' : 'dual';
-        const modeEl = sr.getElementById('mode');
-        if (modeEl) modeEl.value = mode;
-
-        const topAttr = sr.getElementById('top_attribute');
-        if (topAttr) topAttr.value = c.top_attribute ?? 'position';
-
-        const botAttr = sr.getElementById('bottom_attribute');
-        if (botAttr) botAttr.value = c.bottom_attribute ?? 'tilt_position';
-      });
     }
 
     /* ---- Attach editor event listeners ------------------------------- */
@@ -872,40 +934,40 @@
         this._update({ name: e.target.value.trim() || 'Window Shade' });
       });
 
-      // Entity mode selector
-      sr.getElementById('mode')?.addEventListener('selected', e => {
-        const val = e.detail?.value ?? sr.getElementById('mode')?.value;
-        if (!val) return;
-
-        const next = { ...this._config };
-        if (val === 'single') {
-          delete next.top_entity;
-          delete next.bottom_entity;
-          if (!next.entity)             next.entity            = '';
-          if (!next.top_attribute)      next.top_attribute     = 'position';
-          if (!next.bottom_attribute)   next.bottom_attribute  = 'tilt_position';
-        } else {
-          delete next.entity;
-          delete next.top_attribute;
-          delete next.bottom_attribute;
-        }
-        this._config = next;
-        this._fire();
-        this._render();
+      // Mode toggle buttons — plain click, no HA component involved
+      sr.querySelectorAll('.mode-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val  = btn.dataset.mode;
+          const next = { ...this._config };
+          if (val === 'single') {
+            delete next.top_entity;
+            delete next.bottom_entity;
+            if (!next.entity)           next.entity           = '';
+            if (!next.top_attribute)    next.top_attribute    = 'position';
+            if (!next.bottom_attribute) next.bottom_attribute = 'tilt_position';
+          } else {
+            delete next.entity;
+            delete next.top_attribute;
+            delete next.bottom_attribute;
+          }
+          this._config = next;
+          this._fire();
+          this._render();
+        });
       });
 
       // Entity pickers
       for (const id of ['entity', 'top_entity', 'bottom_entity']) {
         sr.getElementById(id)?.addEventListener('value-changed', e => {
-          this._update({ [id]: e.detail.value });
+          const val = e.detail?.value;
+          if (val !== undefined) this._update({ [id]: val });
         });
       }
 
-      // Attribute selects (single-entity mode)
+      // Native attribute selects
       for (const id of ['top_attribute', 'bottom_attribute']) {
-        sr.getElementById(id)?.addEventListener('selected', e => {
-          const val = e.detail?.value ?? sr.getElementById(id)?.value;
-          if (val) this._update({ [id]: val });
+        sr.getElementById(id)?.addEventListener('change', e => {
+          this._update({ [id]: e.target.value });
         });
       }
 
