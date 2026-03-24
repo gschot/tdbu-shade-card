@@ -852,3 +852,32 @@
       sr.appendChild(form);
     }
   }
+
+  /* ------------------------------------------------------------------ */
+  /*  Register                                                            */
+  /* ------------------------------------------------------------------ */
+
+  if (!customElements.get(EDITOR_TAG)) {
+    customElements.define(EDITOR_TAG, TDBUShadeCardEditor);
+  }
+
+  if (!customElements.get(TAG)) {
+    customElements.define(TAG, TDBUShadeCard);
+    console.info(
+      `%c TDBU-SHADE-CARD %c v${VERSION} `,
+      'color: orange; font-weight: bold; background: #000',
+      'color: #fff;    font-weight: bold; background: #555',
+    );
+  }
+
+  window.customCards = window.customCards || [];
+  if (!window.customCards.some(c => c.type === TAG)) {
+    window.customCards.push({
+      type            : TAG,
+      name            : 'TDBU Shade Card',
+      description     : 'Visual card for Top-Down Bottom-Up (TDBU) shades with interactive draggable beams',
+      preview         : true,
+      documentationURL: 'https://github.com/your-username/tdbu-shade-card',
+    });
+  }
+})();
