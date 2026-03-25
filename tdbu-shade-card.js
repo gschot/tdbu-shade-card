@@ -1494,7 +1494,7 @@
       name            : 'TDBU Shade Card',
       description     : 'Visual card for Top-Down Bottom-Up (TDBU) shades with interactive draggable beams',
       preview         : true,
-      documentationURL: 'https://github.com/your-username/tdbu-shade-card',
+      documentationURL: 'https://github.com/gschot/tdbu-shade-card',
     });
   }
 })();
