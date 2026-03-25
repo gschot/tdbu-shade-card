@@ -78,6 +78,36 @@ show_controls: false      # optional
 step: 5                   # optional — % per button click
 ```
 
+### Mode B — Single cover entity (position + tilt)
+
+Use this when one cover entity controls both beams via `current_position`
+(top beam) and `current_tilt_position` (bottom beam).
+
+```yaml
+type: custom:tdbu-shade-card
+name: Office Window
+entity: cover.my_tdbu_shade
+show_percentages: true
+show_controls: true
+step: 10
+```
+
+The default attribute mapping is:
+
+| Beam | Reads attribute | Calls service |
+|------|----------------|---------------|
+| Top | `current_position` | `cover.set_cover_position` |
+| Bottom | `current_tilt_position` | `cover.set_cover_tilt_position` |
+
+If your integration uses the **opposite** attribute for a beam, override it:
+
+```yaml
+type: custom:tdbu-shade-card
+entity: cover.my_tdbu_shade
+top_attribute: tilt_position   # default: position
+bottom_attribute: position     # default: tilt_position
+```
+
 ### Mode C — Hybrid (separate control and state entities)
 
 Use this when the entity you send commands to differs from the entity that reflects
@@ -109,36 +139,6 @@ State entity reading priority per beam:
 3. Falls back to the control entity when no state entity is configured
 
 ---
-
-### Mode B — Single cover entity (position + tilt)
-
-Use this when one cover entity controls both beams via `current_position`
-(top beam) and `current_tilt_position` (bottom beam).
-
-```yaml
-type: custom:tdbu-shade-card
-name: Office Window
-entity: cover.my_tdbu_shade
-show_percentages: true
-show_controls: true
-step: 10
-```
-
-The default attribute mapping is:
-
-| Beam | Reads attribute | Calls service |
-|------|----------------|---------------|
-| Top | `current_position` | `cover.set_cover_position` |
-| Bottom | `current_tilt_position` | `cover.set_cover_tilt_position` |
-
-If your integration uses the **opposite** attribute for a beam, override it:
-
-```yaml
-type: custom:tdbu-shade-card
-entity: cover.my_tdbu_shade
-top_attribute: tilt_position   # default: position
-bottom_attribute: position     # default: tilt_position
-```
 
 ### Inversion flags
 
