@@ -1,4 +1,4 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 300" width="460" height="300">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 300" width="460" height="300">
   <defs>
     <linearGradient id="ov-sky" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%"   stop-color="rgba(173,216,240,.85)"/>
@@ -204,5 +204,5 @@
 
   <rect x="317" y="254" width="110" height="18" rx="9" fill="#03a9f4" opacity="0.15"/>
   <text x="372" y="267" text-anchor="middle"
-      font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#0278a8" font-weight="600">v1.3.1 &#xB7; HACS compatible</text>
+      font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#0278a8" font-weight="600">v1.4.0 &#xB7; HACS compatible</text>
 </svg>
