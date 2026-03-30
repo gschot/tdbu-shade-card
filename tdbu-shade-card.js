@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.5.0-beta.4';
+  const VERSION = '1.5.0';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */

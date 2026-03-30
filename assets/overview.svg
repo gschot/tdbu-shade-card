@@ -204,5 +204,5 @@
 
   <rect x="317" y="254" width="110" height="18" rx="9" fill="#03a9f4" opacity="0.15"/>
   <text x="372" y="267" text-anchor="middle"
-      font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#0278a8" font-weight="600">v1.4.0 &#xB7; HACS compatible</text>
+      font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#0278a8" font-weight="600">v1.5.0 &#xB7; HACS compatible</text>
 </svg>

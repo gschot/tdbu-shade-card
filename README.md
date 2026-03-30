@@ -36,6 +36,7 @@ The card shows a scaled window visualization with the two wooden rails and the s
 - Beams **cannot cross** each other — movement is constrained
 - Smooth **CSS animation** when entity values change externally
 - Optional **arrow-button controls** per beam (▲/▼)
+- **Ghost slider** for interactive beam positioning (drag & arrow-button)
 - Optional **percentage display** on each beam
 - Works with `cover`, `number`, `input_number`, and `sensor` entities
 - **Hybrid mode** — send commands to one entity set, read position feedback from a different entity set
@@ -225,6 +226,14 @@ Four built-in themes, selectable via `theme:` or the visual editor:
 ---
 
 ## Changelog
+
+### v1.5.0
+- **Ghost slider** — when dragging a beam or using the arrow buttons, a semi-transparent ghost beam appears at the target position while the actual beam keeps reflecting the current entity value
+  - Ghost **pulses** (dashed outline animation) while the user is dragging, indicating the beam has not been released yet
+  - Ghost **stops pulsing** (solid outline) after the command is sent, indicating the motor is on its way
+  - Ghost **disappears** automatically once the entity reports that the actual beam has reached the target position (within 2 %)
+  - When `show_percentages` is enabled, the target percentage is also shown on the ghost beam
+- Version bump to **1.5.0**
 
 ### v1.4.0
 - **Hybrid entity mode** — control (sending commands) and state feedback (reading position) can now use completely different entities
