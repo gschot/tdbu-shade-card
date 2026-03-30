@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.5.0-beta.2';
+  const VERSION = '1.5.0-beta.3';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
@@ -563,6 +563,8 @@
           topGhost.style.display = 'block';
           topGhost.style.top     = `${this._ghostTop}%`;
           topGhost.classList.toggle('sent', this._ghostTopSent);
+          const lblGT = sr.getElementById('lbl-ghost-top');
+          if (lblGT) lblGT.textContent = `${Math.round(this._ghostTop)}%`;
         } else {
           topGhost.style.display = 'none';
         }
@@ -572,6 +574,8 @@
           botGhost.style.display = 'block';
           botGhost.style.top     = `${100 - this._ghostBottom}%`;
           botGhost.classList.toggle('sent', this._ghostBottomSent);
+          const lblGB = sr.getElementById('lbl-ghost-bot');
+          if (lblGB) lblGB.textContent = `${Math.round(this._ghostBottom)}%`;
         } else {
           botGhost.style.display = 'none';
         }
@@ -916,8 +920,8 @@
             ${c.name ? `<div class="popup-title">${this._esc(c.name)}</div>` : ''}
             <div class="shade-window" id="win">
               <div class="fabric" id="fabric"></div>
-              <div class="beam ghost-beam" id="top-beam-ghost"></div>
-              <div class="beam ghost-beam" id="bot-beam-ghost"></div>
+              <div class="beam ghost-beam" id="top-beam-ghost">${sp ? `<span class="beam-label" id="lbl-ghost-top"></span>` : ''}</div>
+              <div class="beam ghost-beam" id="bot-beam-ghost">${sp ? `<span class="beam-label" id="lbl-ghost-bot"></span>` : ''}</div>
               <div class="beam" id="top-beam">${sp ? `<span class="beam-label" id="lbl-top"></span>` : ''}</div>
               <div class="beam" id="bot-beam">${sp ? `<span class="beam-label" id="lbl-bot"></span>` : ''}</div>
             </div>
@@ -959,8 +963,8 @@
           ${c.name ? `<div class="title">${this._esc(c.name)}</div>` : ''}
           <div class="shade-window" id="win">
             <div class="fabric" id="fabric"></div>
-            <div class="beam ghost-beam" id="top-beam-ghost"></div>
-            <div class="beam ghost-beam" id="bot-beam-ghost"></div>
+            <div class="beam ghost-beam" id="top-beam-ghost">${sp ? `<span class="beam-label" id="lbl-ghost-top"></span>` : ''}</div>
+            <div class="beam ghost-beam" id="bot-beam-ghost">${sp ? `<span class="beam-label" id="lbl-ghost-bot"></span>` : ''}</div>
             <div class="beam" id="top-beam">${sp ? `<span class="beam-label" id="lbl-top"></span>` : ''}</div>
             <div class="beam" id="bot-beam">${sp ? `<span class="beam-label" id="lbl-bot"></span>` : ''}</div>
           </div>
