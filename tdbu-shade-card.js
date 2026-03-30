@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.5.0-beta.3';
+  const VERSION = '1.5.0-beta.2';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
@@ -640,7 +640,6 @@
         this._ghostBottomSent = false;   // actively dragging — keep pulsing
       }
 
-      this._drag.moved = true;   // flag: real movement occurred in this drag
       this._paint(false);
     }
 
@@ -652,23 +651,19 @@
       document.removeEventListener('touchmove', this._onMove);
       document.removeEventListener('touchend',  this._onEnd);
 
-      const { beam, moved } = this._drag;
+      const beam  = this._drag.beam;
+      // Send the ghost (target) position; fall back to actual if ghost was never set
+      const value = (beam === 'top')
+        ? (this._ghostTop    ?? this._top)
+        : (this._ghostBottom ?? this._bottom);
 
-      // Only send a command if the beam was actually dragged (not just tapped).
-      // Sending the current HA position as a command when no movement occurred
-      // would cause slow integrations to stop the beam at its current position.
-      if (moved) {
-        const ghost = (beam === 'top') ? this._ghostTop : this._ghostBottom;
-        if (ghost !== null) {
-          // Mark ghost as sent: stop pulsing, beam is on its way
-          if (beam === 'top')  this._ghostTopSent    = true;
-          else                 this._ghostBottomSent = true;
-          this._sendToHA(beam, ghost);
-        }
-      }
+      // Mark ghost as sent: stop pulsing, beam is on its way
+      if (beam === 'top')    this._ghostTopSent    = true;
+      else                   this._ghostBottomSent = true;
 
+      this._sendToHA(beam, value);
       this._drag = null;
-      this._paint(false);
+      this._paint(false);   // immediately show non-pulsing ghost
     }
 
     disconnectedCallback () {
@@ -1008,7 +1003,7 @@
       const startDrag = (beam) => (e) => {
         e.preventDefault();
         e.stopPropagation();
-        this._drag = { beam, rect: win.getBoundingClientRect(), moved: false };
+        this._drag = { beam, rect: win.getBoundingClientRect() };
         document.addEventListener('mousemove', this._onMove);
         document.addEventListener('mouseup',   this._onEnd);
         document.addEventListener('touchmove', this._onMove, { passive: false });
