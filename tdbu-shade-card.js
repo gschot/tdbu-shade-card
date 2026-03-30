@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.5.0-beta.1';
+  const VERSION = '1.5.0-beta.2';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
@@ -229,8 +229,10 @@
       this._bottom = 0;
       this._ready  = false;
       this._drag        = null;   // null | { beam: 'top'|'bottom', rect: DOMRect }
-      this._ghostTop    = null;   // null | 0-100  target position for top beam ghost
-      this._ghostBottom = null;   // null | 0-100  target position for bottom beam ghost
+      this._ghostTop        = null;   // null | 0-100  target position for top beam ghost
+      this._ghostBottom     = null;   // null | 0-100  target position for bottom beam ghost
+      this._ghostTopSent    = false;  // true after drag-end/step: command sent, waiting for motor
+      this._ghostBottomSent = false;
 
       // Bound handlers kept so we can remove them later
       this._onMove = this._handleMove.bind(this);
@@ -351,11 +353,13 @@
         const tol = 2;
         let ghostCleared = false;
         if (this._ghostTop !== null && Math.abs(newTop - this._ghostTop) <= tol) {
-          this._ghostTop = null;
+          this._ghostTop    = null;
+          this._ghostTopSent = false;
           ghostCleared = true;
         }
         if (this._ghostBottom !== null && Math.abs(newBottom - this._ghostBottom) <= tol) {
-          this._ghostBottom = null;
+          this._ghostBottom     = null;
+          this._ghostBottomSent = false;
           ghostCleared = true;
         }
         if (changed || ghostCleared) {
@@ -558,6 +562,7 @@
         if (this._ghostTop !== null) {
           topGhost.style.display = 'block';
           topGhost.style.top     = `${this._ghostTop}%`;
+          topGhost.classList.toggle('sent', this._ghostTopSent);
         } else {
           topGhost.style.display = 'none';
         }
@@ -566,6 +571,7 @@
         if (this._ghostBottom !== null) {
           botGhost.style.display = 'block';
           botGhost.style.top     = `${100 - this._ghostBottom}%`;
+          botGhost.classList.toggle('sent', this._ghostBottomSent);
         } else {
           botGhost.style.display = 'none';
         }
@@ -598,12 +604,14 @@
     _step (beam, delta) {
       if (beam === 'top') {
         const cur = this._ghostTop ?? this._top;
-        this._ghostTop = Math.max(0, Math.min(cur + delta, 100 - (this._ghostBottom ?? this._bottom)));
+        this._ghostTop     = Math.max(0, Math.min(cur + delta, 100 - (this._ghostBottom ?? this._bottom)));
+        this._ghostTopSent = true;   // command sent immediately on click
         this._paint(false);
         this._sendToHA('top', this._ghostTop);
       } else {
         const cur = this._ghostBottom ?? this._bottom;
-        this._ghostBottom = Math.max(0, Math.min(cur + delta, 100 - (this._ghostTop ?? this._top)));
+        this._ghostBottom     = Math.max(0, Math.min(cur + delta, 100 - (this._ghostTop ?? this._top)));
+        this._ghostBottomSent = true;   // command sent immediately on click
         this._paint(false);
         this._sendToHA('bottom', this._ghostBottom);
       }
@@ -622,12 +630,14 @@
       if (beam === 'top') {
         // Ghost top clamped to [0, visual-bottom of bottom beam]
         const botLimit = this._ghostBottom !== null ? this._ghostBottom : this._bottom;
-        this._ghostTop = Math.max(0, Math.min(yPct, 100 - botLimit));
+        this._ghostTop     = Math.max(0, Math.min(yPct, 100 - botLimit));
+        this._ghostTopSent = false;   // actively dragging — keep pulsing
       } else {
         // Ghost bottom: visual Y must stay in [visual-top of top beam, 100]
         const topLimit = this._ghostTop !== null ? this._ghostTop : this._top;
         const clampedY = Math.max(topLimit, Math.min(yPct, 100));
-        this._ghostBottom = Math.max(0, 100 - clampedY);
+        this._ghostBottom     = Math.max(0, 100 - clampedY);
+        this._ghostBottomSent = false;   // actively dragging — keep pulsing
       }
 
       this._paint(false);
@@ -647,9 +657,13 @@
         ? (this._ghostTop    ?? this._top)
         : (this._ghostBottom ?? this._bottom);
 
+      // Mark ghost as sent: stop pulsing, beam is on its way
+      if (beam === 'top')    this._ghostTopSent    = true;
+      else                   this._ghostBottomSent = true;
+
       this._sendToHA(beam, value);
       this._drag = null;
-      // Ghost remains visible until HA confirms the actual beam has reached the target
+      this._paint(false);   // immediately show non-pulsing ghost
     }
 
     disconnectedCallback () {
@@ -885,6 +899,12 @@
           @keyframes ghost-pulse {
             0%, 100% { opacity: 0.50; }
             50%       { opacity: 0.25; }
+          }
+          /* Sent state: command transmitted, motor moving — no pulse, solid outline */
+          .ghost-beam.sent {
+            animation    : none;
+            opacity      : 0.40;
+            outline-style: solid;
           }
         </style>
 
