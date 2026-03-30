@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.4.0';
+  const VERSION = '1.5.0-beta.1';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
@@ -228,7 +228,9 @@
       this._top    = 0;
       this._bottom = 0;
       this._ready  = false;
-      this._drag   = null;   // null | { beam: 'top'|'bottom', rect: DOMRect }
+      this._drag        = null;   // null | { beam: 'top'|'bottom', rect: DOMRect }
+      this._ghostTop    = null;   // null | 0-100  target position for top beam ghost
+      this._ghostBottom = null;   // null | 0-100  target position for bottom beam ghost
 
       // Bound handlers kept so we can remove them later
       this._onMove = this._handleMove.bind(this);
@@ -336,15 +338,28 @@
         return;
       }
 
-      // Animate only when values change externally (not while user is dragging)
+      // Always track actual entity positions
+      const changed =
+        Math.abs(newTop    - this._top)    > 0.01 ||
+        Math.abs(newBottom - this._bottom) > 0.01;
+
+      this._top    = newTop;
+      this._bottom = newBottom;
+
+      // Clear ghost when actual position has reached the ghost target (not during drag)
       if (!this._drag) {
-        const changed =
-          Math.abs(newTop    - this._top)    > 0.01 ||
-          Math.abs(newBottom - this._bottom) > 0.01;
-        if (changed) {
-          this._top    = newTop;
-          this._bottom = newBottom;
-          this._paint(true);
+        const tol = 2;
+        let ghostCleared = false;
+        if (this._ghostTop !== null && Math.abs(newTop - this._ghostTop) <= tol) {
+          this._ghostTop = null;
+          ghostCleared = true;
+        }
+        if (this._ghostBottom !== null && Math.abs(newBottom - this._ghostBottom) <= tol) {
+          this._ghostBottom = null;
+          ghostCleared = true;
+        }
+        if (changed || ghostCleared) {
+          this._paint(changed);
         }
       }
     }
@@ -536,6 +551,26 @@
       fabric.style.top     = `${topY}%`;
       fabric.style.height  = `${fabH}%`;
 
+      // Ghost beams (drag / step target indicators)
+      const topGhost = sr.getElementById('top-beam-ghost');
+      const botGhost = sr.getElementById('bot-beam-ghost');
+      if (topGhost) {
+        if (this._ghostTop !== null) {
+          topGhost.style.display = 'block';
+          topGhost.style.top     = `${this._ghostTop}%`;
+        } else {
+          topGhost.style.display = 'none';
+        }
+      }
+      if (botGhost) {
+        if (this._ghostBottom !== null) {
+          botGhost.style.display = 'block';
+          botGhost.style.top     = `${100 - this._ghostBottom}%`;
+        } else {
+          botGhost.style.display = 'none';
+        }
+      }
+
       // Percentage labels on beams (show_percentages)
       const lblTop = sr.getElementById('lbl-top');
       const lblBot = sr.getElementById('lbl-bot');
@@ -562,13 +597,15 @@
      */
     _step (beam, delta) {
       if (beam === 'top') {
-        this._top = Math.max(0, Math.min(this._top + delta, 100 - this._bottom));
-        this._paint(true);
-        this._sendToHA('top', this._top);
+        const cur = this._ghostTop ?? this._top;
+        this._ghostTop = Math.max(0, Math.min(cur + delta, 100 - (this._ghostBottom ?? this._bottom)));
+        this._paint(false);
+        this._sendToHA('top', this._ghostTop);
       } else {
-        this._bottom = Math.max(0, Math.min(this._bottom + delta, 100 - this._top));
-        this._paint(true);
-        this._sendToHA('bottom', this._bottom);
+        const cur = this._ghostBottom ?? this._bottom;
+        this._ghostBottom = Math.max(0, Math.min(cur + delta, 100 - (this._ghostTop ?? this._top)));
+        this._paint(false);
+        this._sendToHA('bottom', this._ghostBottom);
       }
     }
 
@@ -578,17 +615,19 @@
       if (!this._drag) return;
       e.preventDefault();
 
-      const clientY          = e.touches ? e.touches[0].clientY : e.clientY;
-      const { rect, beam }   = this._drag;
-      const yPct             = ((clientY - rect.top) / rect.height) * 100;
+      const clientY        = e.touches ? e.touches[0].clientY : e.clientY;
+      const { rect, beam } = this._drag;
+      const yPct           = ((clientY - rect.top) / rect.height) * 100;
 
       if (beam === 'top') {
-        // topValue  = yPct, clamped to [0, 100 - bottomValue]
-        this._top = Math.max(0, Math.min(yPct, 100 - this._bottom));
+        // Ghost top clamped to [0, visual-bottom of bottom beam]
+        const botLimit = this._ghostBottom !== null ? this._ghostBottom : this._bottom;
+        this._ghostTop = Math.max(0, Math.min(yPct, 100 - botLimit));
       } else {
-        // bottomBeam visual Y must stay in [topValue, 100]
-        const clampedY   = Math.max(this._top, Math.min(yPct, 100));
-        this._bottom     = Math.max(0, 100 - clampedY);
+        // Ghost bottom: visual Y must stay in [visual-top of top beam, 100]
+        const topLimit = this._ghostTop !== null ? this._ghostTop : this._top;
+        const clampedY = Math.max(topLimit, Math.min(yPct, 100));
+        this._ghostBottom = Math.max(0, 100 - clampedY);
       }
 
       this._paint(false);
@@ -603,10 +642,14 @@
       document.removeEventListener('touchend',  this._onEnd);
 
       const beam  = this._drag.beam;
-      const value = (beam === 'top') ? this._top : this._bottom;
+      // Send the ghost (target) position; fall back to actual if ghost was never set
+      const value = (beam === 'top')
+        ? (this._ghostTop    ?? this._top)
+        : (this._ghostBottom ?? this._bottom);
 
       this._sendToHA(beam, value);
       this._drag = null;
+      // Ghost remains visible until HA confirms the actual beam has reached the target
     }
 
     disconnectedCallback () {
@@ -827,6 +870,22 @@
           .ctrl-btn:hover  { filter: brightness(1.18); }
           .ctrl-btn:active { transform: scale(0.90); filter: brightness(0.88); }
           .ctrl-pct { font-size: 0.82em; font-weight: 500; color: var(--primary-text-color); min-width: 38px; text-align: center; }
+
+          /* ---- Ghost beam (drag / step target indicator) ---- */
+          .ghost-beam {
+            display        : none;
+            pointer-events : none;
+            cursor         : default;
+            z-index        : 8;
+            opacity        : 0.50;
+            outline        : 2px dashed rgba(255,255,255,0.80);
+            outline-offset : 3px;
+            animation      : ghost-pulse 1.5s ease-in-out infinite;
+          }
+          @keyframes ghost-pulse {
+            0%, 100% { opacity: 0.50; }
+            50%       { opacity: 0.25; }
+          }
         </style>
 
         ${c.popup ? `
@@ -837,6 +896,8 @@
             ${c.name ? `<div class="popup-title">${this._esc(c.name)}</div>` : ''}
             <div class="shade-window" id="win">
               <div class="fabric" id="fabric"></div>
+              <div class="beam ghost-beam" id="top-beam-ghost"></div>
+              <div class="beam ghost-beam" id="bot-beam-ghost"></div>
               <div class="beam" id="top-beam">${sp ? `<span class="beam-label" id="lbl-top"></span>` : ''}</div>
               <div class="beam" id="bot-beam">${sp ? `<span class="beam-label" id="lbl-bot"></span>` : ''}</div>
             </div>
@@ -878,6 +939,8 @@
           ${c.name ? `<div class="title">${this._esc(c.name)}</div>` : ''}
           <div class="shade-window" id="win">
             <div class="fabric" id="fabric"></div>
+            <div class="beam ghost-beam" id="top-beam-ghost"></div>
+            <div class="beam ghost-beam" id="bot-beam-ghost"></div>
             <div class="beam" id="top-beam">${sp ? `<span class="beam-label" id="lbl-top"></span>` : ''}</div>
             <div class="beam" id="bot-beam">${sp ? `<span class="beam-label" id="lbl-bot"></span>` : ''}</div>
           </div>
