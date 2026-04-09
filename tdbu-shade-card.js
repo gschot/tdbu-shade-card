@@ -15,75 +15,190 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.5.1-beta.1';
+  const VERSION = '1.5.2-beta.1';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
   /*
    * Each theme provides CSS variables injected into the shadow root.
-   * Keys:
-   *   --frame-color        window frame / border colour
-   *   --frame-bg           sky / glass background (gradient or solid)
-   *   --divider-color-     centre mullion override (falls back to --frame-color)
-   *   --beam-bg            beam rail gradient
-   *   --beam-shadow        beam box-shadow
-   *   --fabric-bg          fabric CSS background (layered gradients)
-   *   --fabric-shadow      fabric box-shadow
+   * --t-frame      window frame colour
+   * --t-glass      sky / glass background (overridden at runtime by sky-clock if enabled)
+   * --t-beam       beam rail gradient (3-D highlight/shadow)
+   * --t-beam-sh    beam box-shadow
+   * --t-fabric     fabric CSS background — horizontal fold lines only, no grid
+   * --t-fab-sh     fabric top/bottom edge shadows
+   *
+   * NOTE: the centre mullion has been removed from all themes.
    */
   const THEMES = {
-    /* Natural wood — original look */
+    /* Natural wood — warm golden fabric with subtle horizontal weave lines */
     wood: {
       label: 'Natural Wood',
       vars: `
         --t-frame:   #6b5a3e;
         --t-glass:   linear-gradient(180deg, rgba(173,216,240,.75) 0%, rgba(230,248,255,.55) 100%);
-        --t-mullion: #6b5a3e;
-        --t-beam:    linear-gradient(180deg,#7c5530 0%,#a97840 35%,#8a6030 65%,#5d3d18 100%);
-        --t-beam-sh: 0 3px 9px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.22);
-        --t-fabric:  repeating-linear-gradient(0deg,transparent 0px,transparent 7px,rgba(100,65,15,.13) 7px,rgba(100,65,15,.13) 8px),
-                     repeating-linear-gradient(90deg,transparent 0px,transparent 9px,rgba(100,65,15,.10) 9px,rgba(100,65,15,.10) 10px),
-                     linear-gradient(180deg,rgba(215,175,100,.92) 0%,rgba(190,148,72,.92) 100%);
-        --t-fab-sh:  0 -3px 8px rgba(0,0,0,.28),0 3px 8px rgba(0,0,0,.28);`,
+        --t-beam:    linear-gradient(180deg,
+                       rgba(255,255,255,.28) 0%,
+                       #b8843a 8%,
+                       #a97840 35%,
+                       #8a6030 65%,
+                       #6b4820 92%,
+                       rgba(0,0,0,.18) 100%);
+        --t-beam-sh: 0 4px 10px rgba(0,0,0,.50),
+                     inset 0 1px 0 rgba(255,255,255,.30),
+                     inset 0 -1px 0 rgba(0,0,0,.25);
+        --t-fabric:  repeating-linear-gradient(180deg,
+                       transparent               0px,
+                       transparent               11px,
+                       rgba(80,50,10,.18)        11px,
+                       rgba(80,50,10,.18)        12px,
+                       transparent               12px,
+                       transparent               14px,
+                       rgba(160,110,40,.08)      14px,
+                       rgba(160,110,40,.08)      15px),
+                     linear-gradient(180deg,rgba(220,178,98,.95) 0%,rgba(188,146,68,.95) 100%);
+        --t-fab-sh:  0 -4px 10px rgba(0,0,0,.30), 0 4px 10px rgba(0,0,0,.30),
+                     inset 0 1px 0 rgba(255,255,255,.20), inset 0 -1px 0 rgba(0,0,0,.15);`,
     },
-    /* Modern white frame with light-grey linen shade */
+    /* Modern white aluminium frame, light linen fabric */
     modern: {
       label: 'Modern White',
       vars: `
-        --t-frame:   #d0d0d0;
+        --t-frame:   #c8c8c8;
         --t-glass:   linear-gradient(180deg,rgba(200,230,255,.80) 0%,rgba(235,250,255,.60) 100%);
-        --t-mullion: #c0c0c0;
-        --t-beam:    linear-gradient(180deg,#e8e8e8 0%,#ffffff 35%,#e0e0e0 65%,#c8c8c8 100%);
-        --t-beam-sh: 0 2px 7px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.80);
-        --t-fabric:  repeating-linear-gradient(0deg,transparent 0px,transparent 8px,rgba(160,150,135,.10) 8px,rgba(160,150,135,.10) 9px),
-                     repeating-linear-gradient(90deg,transparent 0px,transparent 10px,rgba(160,150,135,.08) 10px,rgba(160,150,135,.08) 11px),
-                     linear-gradient(180deg,rgba(220,215,205,.95) 0%,rgba(200,195,182,.95) 100%);
-        --t-fab-sh:  0 -2px 6px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.18);`,
+        --t-beam:    linear-gradient(180deg,
+                       rgba(255,255,255,.70) 0%,
+                       #f0f0f0 10%,
+                       #e8e8e8 40%,
+                       #d8d8d8 70%,
+                       #c0c0c0 92%,
+                       rgba(0,0,0,.10) 100%);
+        --t-beam-sh: 0 3px 8px rgba(0,0,0,.22),
+                     inset 0 1px 0 rgba(255,255,255,.90),
+                     inset 0 -1px 0 rgba(0,0,0,.12);
+        --t-fabric:  repeating-linear-gradient(180deg,
+                       transparent               0px,
+                       transparent               11px,
+                       rgba(130,120,105,.12)     11px,
+                       rgba(130,120,105,.12)     12px,
+                       transparent               12px,
+                       transparent               14px,
+                       rgba(130,120,105,.06)     14px,
+                       rgba(130,120,105,.06)     15px),
+                     linear-gradient(180deg,rgba(222,218,208,.96) 0%,rgba(200,195,182,.96) 100%);
+        --t-fab-sh:  0 -3px 8px rgba(0,0,0,.18), 0 3px 8px rgba(0,0,0,.18),
+                     inset 0 1px 0 rgba(255,255,255,.40), inset 0 -1px 0 rgba(0,0,0,.08);`,
     },
-    /* Minimalist — frameless, white-on-white with soft shadow */
+    /* Minimalist — frameless, grey-on-grey */
     minimal: {
       label: 'Minimal',
       vars: `
         --t-frame:   var(--divider-color,#e0e0e0);
         --t-glass:   var(--secondary-background-color,#f5f5f5);
-        --t-mullion: var(--divider-color,#e0e0e0);
-        --t-beam:    linear-gradient(180deg,#bdbdbd 0%,#e0e0e0 50%,#bdbdbd 100%);
-        --t-beam-sh: 0 2px 6px rgba(0,0,0,.15);
-        --t-fabric:  linear-gradient(180deg,rgba(189,189,189,.85) 0%,rgba(158,158,158,.85) 100%);
-        --t-fab-sh:  0 -2px 5px rgba(0,0,0,.12),0 2px 5px rgba(0,0,0,.12);`,
+        --t-beam:    linear-gradient(180deg,
+                       rgba(255,255,255,.50) 0%,
+                       #d0d0d0 10%,
+                       #c8c8c8 50%,
+                       #b0b0b0 90%,
+                       rgba(0,0,0,.10) 100%);
+        --t-beam-sh: 0 2px 6px rgba(0,0,0,.18),
+                     inset 0 1px 0 rgba(255,255,255,.60),
+                     inset 0 -1px 0 rgba(0,0,0,.10);
+        --t-fabric:  repeating-linear-gradient(180deg,
+                       transparent            0px,
+                       transparent            12px,
+                       rgba(80,80,80,.12)     12px,
+                       rgba(80,80,80,.12)     13px),
+                     linear-gradient(180deg,rgba(192,192,192,.88) 0%,rgba(160,160,160,.88) 100%);
+        --t-fab-sh:  0 -2px 6px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.14),
+                     inset 0 1px 0 rgba(255,255,255,.30);`,
     },
-    /* Dark — slate frame, night sky, dark fabric */
+    /* Dark — slate frame, night sky glass, charcoal fabric */
     dark: {
       label: 'Dark',
       vars: `
         --t-frame:   #2a2a2a;
         --t-glass:   linear-gradient(180deg,rgba(10,20,50,.90) 0%,rgba(20,35,70,.80) 100%);
-        --t-mullion: #1a1a1a;
-        --t-beam:    linear-gradient(180deg,#3a3a3a 0%,#555 35%,#3a3a3a 65%,#222 100%);
-        --t-beam-sh: 0 3px 9px rgba(0,0,0,.70),inset 0 1px 0 rgba(255,255,255,.10);
-        --t-fabric:  repeating-linear-gradient(0deg,transparent 0px,transparent 7px,rgba(255,255,255,.04) 7px,rgba(255,255,255,.04) 8px),
-                     repeating-linear-gradient(90deg,transparent 0px,transparent 9px,rgba(255,255,255,.03) 9px,rgba(255,255,255,.03) 10px),
-                     linear-gradient(180deg,rgba(60,65,75,.95) 0%,rgba(40,45,55,.95) 100%);
-        --t-fab-sh:  0 -3px 8px rgba(0,0,0,.60),0 3px 8px rgba(0,0,0,.60);`,
+        --t-beam:    linear-gradient(180deg,
+                       rgba(255,255,255,.14) 0%,
+                       #555 8%,
+                       #484848 35%,
+                       #383838 65%,
+                       #222 92%,
+                       rgba(0,0,0,.30) 100%);
+        --t-beam-sh: 0 4px 10px rgba(0,0,0,.70),
+                     inset 0 1px 0 rgba(255,255,255,.14),
+                     inset 0 -1px 0 rgba(0,0,0,.40);
+        --t-fabric:  repeating-linear-gradient(180deg,
+                       transparent               0px,
+                       transparent               11px,
+                       rgba(255,255,255,.06)     11px,
+                       rgba(255,255,255,.06)     12px,
+                       transparent               12px,
+                       transparent               14px,
+                       rgba(255,255,255,.03)     14px,
+                       rgba(255,255,255,.03)     15px),
+                     linear-gradient(180deg,rgba(62,68,78,.96) 0%,rgba(40,45,55,.96) 100%);
+        --t-fab-sh:  0 -4px 10px rgba(0,0,0,.60), 0 4px 10px rgba(0,0,0,.60),
+                     inset 0 1px 0 rgba(255,255,255,.08), inset 0 -1px 0 rgba(0,0,0,.35);`,
+    },
+    /* Terracotta — Mediterranean clay frame, warm sand fabric */
+    terracotta: {
+      label: 'Terracotta',
+      vars: `
+        --t-frame:   #a0522d;
+        --t-glass:   linear-gradient(180deg,rgba(255,220,180,.60) 0%,rgba(255,245,220,.45) 100%);
+        --t-beam:    linear-gradient(180deg,
+                       rgba(255,255,255,.32) 0%,
+                       #c8713a 8%,
+                       #b8603a 40%,
+                       #9a4828 70%,
+                       #7a3018 92%,
+                       rgba(0,0,0,.22) 100%);
+        --t-beam-sh: 0 4px 10px rgba(0,0,0,.45),
+                     inset 0 1px 0 rgba(255,255,255,.32),
+                     inset 0 -1px 0 rgba(0,0,0,.22);
+        --t-fabric:  repeating-linear-gradient(180deg,
+                       transparent               0px,
+                       transparent               11px,
+                       rgba(120,60,20,.20)       11px,
+                       rgba(120,60,20,.20)       12px,
+                       transparent               12px,
+                       transparent               14px,
+                       rgba(180,100,40,.09)      14px,
+                       rgba(180,100,40,.09)      15px),
+                     linear-gradient(180deg,rgba(230,180,120,.94) 0%,rgba(205,155,90,.94) 100%);
+        --t-fab-sh:  0 -4px 10px rgba(0,0,0,.28), 0 4px 10px rgba(0,0,0,.28),
+                     inset 0 1px 0 rgba(255,255,255,.22), inset 0 -1px 0 rgba(0,0,0,.14);`,
+    },
+    /* Ocean — teal/steel frame, aqua glass, deep-blue fabric */
+    ocean: {
+      label: 'Ocean',
+      vars: `
+        --t-frame:   #2e6e8e;
+        --t-glass:   linear-gradient(180deg,rgba(130,210,240,.75) 0%,rgba(200,240,255,.55) 100%);
+        --t-beam:    linear-gradient(180deg,
+                       rgba(255,255,255,.30) 0%,
+                       #3a8ab0 8%,
+                       #2e7aa0 40%,
+                       #1e6080 70%,
+                       #0e4060 92%,
+                       rgba(0,0,0,.22) 100%);
+        --t-beam-sh: 0 4px 10px rgba(0,0,0,.45),
+                     inset 0 1px 0 rgba(255,255,255,.30),
+                     inset 0 -1px 0 rgba(0,0,0,.22);
+        --t-fabric:  repeating-linear-gradient(180deg,
+                       transparent               0px,
+                       transparent               11px,
+                       rgba(10,60,100,.20)       11px,
+                       rgba(10,60,100,.20)       12px,
+                       transparent               12px,
+                       transparent               14px,
+                       rgba(10,80,130,.09)       14px,
+                       rgba(10,80,130,.09)       15px),
+                     linear-gradient(180deg,rgba(40,100,160,.92) 0%,rgba(20,70,120,.92) 100%);
+        --t-fab-sh:  0 -4px 10px rgba(0,0,0,.35), 0 4px 10px rgba(0,0,0,.35),
+                     inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(0,0,0,.20);`,
     },
   };
 
@@ -143,10 +258,17 @@
       'editor.sub_single'          : 'Single',
       'editor.sub_dual'            : 'Dual',
       // ── Theme labels ─────────────────────────────────────────────────
-      'theme.wood'   : '🪵 Natural Wood',
-      'theme.modern' : '🤍 Modern White',
-      'theme.minimal': '⬜ Minimal',
-      'theme.dark'   : '🌑 Dark',
+      'theme.wood'       : '🪵 Natural Wood',
+      'theme.modern'     : '🤍 Modern White',
+      'theme.minimal'    : '⬜ Minimal',
+      'theme.dark'       : '🌑 Dark',
+      'theme.terracotta' : '🏺 Terracotta',
+      'theme.ocean'      : '🌊 Ocean',
+      // ── Sky clock ─────────────────────────────────────────────────────
+      'editor.sky_clock'       : 'Dynamic Sky',
+      'editor.sky_clock_toggle': 'Colour sky with time of day',
+      'editor.sky_lat_entity'  : 'Latitude entity (sensor)',
+      'editor.sky_lon_entity'  : 'Longitude entity (sensor)',
     },
     nl: {
       // ── Kaartweergave ────────────────────────────────────────────────
@@ -195,10 +317,17 @@
       'editor.sub_single'          : 'Enkel',
       'editor.sub_dual'            : 'Dubbel',
       // ── Thema-labels ─────────────────────────────────────────────────
-      'theme.wood'   : '🪵 Natuurlijk hout',
-      'theme.modern' : '🤍 Modern wit',
-      'theme.minimal': '⬜ Minimaal',
-      'theme.dark'   : '🌑 Donker',
+      'theme.wood'       : '🪵 Natuurlijk hout',
+      'theme.modern'     : '🤍 Modern wit',
+      'theme.minimal'    : '⬜ Minimaal',
+      'theme.dark'       : '🌑 Donker',
+      'theme.terracotta' : '🏺 Terracotta',
+      'theme.ocean'      : '🌊 Oceaan',
+      // ── Dynamische lucht ──────────────────────────────────────────────
+      'editor.sky_clock'       : 'Dynamische lucht',
+      'editor.sky_clock_toggle': 'Kleur lucht op basis van tijd',
+      'editor.sky_lat_entity'  : 'Breedtegraad-entiteit (sensor)',
+      'editor.sky_lon_entity'  : 'Lengtegraad-entiteit (sensor)',
     },
   };
 
@@ -212,6 +341,115 @@
     const lang = hass?.language ?? 'en';
     const dict = TRANSLATIONS[lang] ?? TRANSLATIONS.en;
     return dict[key] ?? TRANSLATIONS.en[key] ?? key;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Sky colour helper                                                   */
+  /* ------------------------------------------------------------------ */
+  /*
+   * Returns a CSS linear-gradient string for the window "glass" that
+   * approximates the outside sky colour for the current local time.
+   *
+   * When lat/lon are available (from HA sensors) sunrise and sunset times
+   * are estimated using the NOAA simplified solar position formula so the
+   * colour transitions happen at the correct local times.
+   *
+   * Colour key-frames (hour 0-24, solar-time normalised):
+   *   night      : deep blue-black
+   *   pre-dawn   : midnight blue → indigo
+   *   civil dusk : orange-pink glow
+   *   sunrise    : soft warm amber
+   *   morning    : pale yellow-blue
+   *   midday     : clear sky blue
+   *   afternoon  : slightly warmer blue
+   *   sunset     : orange → coral
+   *   civil dusk : magenta → indigo
+   *   night      : blue-black
+   */
+  function _skyGradient (lat, lon) {
+    const now   = new Date();
+    const hours = now.getHours() + now.getMinutes() / 60;
+
+    // Estimate solar noon and day-length from lat/lon and day-of-year
+    let sunrise = 6, sunset = 20;   // safe fallbacks
+    if (lat != null && lon != null && isFinite(lat) && isFinite(lon)) {
+      const jDay  = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
+                                Date.UTC(now.getFullYear(), 0, 0)) / 86400000);
+      const B     = (360 / 365) * (jDay - 81) * (Math.PI / 180);
+      const eot   = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);  // minutes
+      const tc    = 4 * lon + eot;   // time correction (minutes)
+      const decl  = 23.45 * Math.sin((360 / 365) * (jDay - 81) * (Math.PI / 180));
+      const latR  = lat * (Math.PI / 180);
+      const declR = decl * (Math.PI / 180);
+      const ha    = Math.acos(-Math.tan(latR) * Math.tan(declR)) * (180 / Math.PI);
+      sunrise = 12 - ha / 15 - tc / 60;
+      sunset  = 12 + ha / 15 - tc / 60;
+    }
+
+    // Normalise hours into solar fractions:
+    const dawn    = sunrise - 0.75;   // 45 min before sunrise
+    const dusk    = sunset  + 0.75;   // 45 min after  sunset
+    const nightS  = dusk    + 1.00;   // deep night starts 1 h after dusk
+    const nightE  = dawn    - 1.00;   // deep night ends 1 h before dawn
+
+    // Helper: linear interpolation between two [r,g,b] arrays
+    const lerp = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+    const rgb  = (c) => `rgba(${c[0]},${c[1]},${c[2]},.85)`;
+
+    // Named sky colours
+    const NIGHT      = [8,  12,  40];
+    const DEEP_NIGHT = [5,   8,  28];
+    const PRE_DAWN   = [25,  30,  80];
+    const DAWN_GLOW  = [200, 100,  60];
+    const SUNRISE    = [255, 180,  80];
+    const MORNING    = [160, 210, 245];
+    const MIDDAY     = [100, 175, 240];
+    const AFTERNOON  = [110, 185, 245];
+    const SUNSET     = [255, 150,  60];
+    const DUSK_GLOW  = [180,  80, 100];
+    const LATE_DUSK  = [60,   40, 110];
+
+    let top, bot;
+    if (hours < nightE || hours >= nightS) {
+      // deep night
+      top = DEEP_NIGHT; bot = NIGHT;
+    } else if (hours < dawn) {
+      const f = (hours - nightE) / (dawn - nightE);
+      top = lerp(DEEP_NIGHT, PRE_DAWN, f);
+      bot = lerp(NIGHT, PRE_DAWN, f * 0.7);
+    } else if (hours < sunrise) {
+      const f = (hours - dawn) / (sunrise - dawn);
+      top = lerp(PRE_DAWN, DAWN_GLOW, f);
+      bot = lerp(PRE_DAWN, SUNRISE, f);
+    } else if (hours < sunrise + 1.5) {
+      const f = (hours - sunrise) / 1.5;
+      top = lerp(DAWN_GLOW, MORNING, f);
+      bot = lerp(SUNRISE, MORNING, f);
+    } else if (hours < 12) {
+      const f = (hours - (sunrise + 1.5)) / (12 - sunrise - 1.5);
+      top = lerp(MORNING, MIDDAY, f);
+      bot = lerp(MORNING, MIDDAY, f);
+    } else if (hours < sunset - 1.5) {
+      top = MIDDAY; bot = AFTERNOON;
+    } else if (hours < sunset) {
+      const f = (hours - (sunset - 1.5)) / 1.5;
+      top = lerp(MIDDAY, SUNSET, f);
+      bot = lerp(AFTERNOON, SUNSET, f);
+    } else if (hours < dusk) {
+      const f = (hours - sunset) / (dusk - sunset);
+      top = lerp(SUNSET, DUSK_GLOW, f);
+      bot = lerp(SUNSET, LATE_DUSK, f);
+    } else if (hours < nightS) {
+      const f = (hours - dusk) / (nightS - dusk);
+      top = lerp(DUSK_GLOW, NIGHT, f);
+      bot = lerp(LATE_DUSK, DEEP_NIGHT, f);
+    } else {
+      top = NIGHT; bot = DEEP_NIGHT;
+    }
+
+    const topRgb = rgb(top);
+    const botRgb = rgb(bot);
+    return `linear-gradient(180deg, ${topRgb} 0%, ${botRgb} 100%)`;
   }
 
   /* ------------------------------------------------------------------ */
@@ -268,9 +506,12 @@
         show_percentages : false,
         show_controls    : false,
         step             : 5,
-        theme            : 'wood',   // 'wood' | 'modern' | 'minimal' | 'dark'
+        theme            : 'wood',   // 'wood' | 'modern' | 'minimal' | 'dark' | 'terracotta' | 'ocean'
         card_height      : null,     // null = auto | number = fixed px height of window area
         popup            : false,    // true = floating overlay / pop-up card
+        sky_clock        : false,    // true = dynamic sky colour based on time of day
+        // sky_lat_entity: 'sensor.home_latitude',   // optional, improves sunrise/set timing
+        // sky_lon_entity: 'sensor.home_longitude',
 
         // Invert a beam's percentage direction if your integration is reversed:
         // invert_top   : false,
@@ -303,7 +544,7 @@
         show_percentages : false,
         show_controls    : false,
         step             : 5,
-        theme            : 'wood',      // 'wood' | 'modern' | 'minimal' | 'dark'
+        theme            : 'wood',      // 'wood' | 'modern' | 'minimal' | 'dark' | 'terracotta' | 'ocean'
         card_height      : null,        // null = auto aspect-ratio 3:4 | number = px height of window area
         popup            : false,       // when true: card acts as a pop-up trigger/overlay
         // Single-entity attribute mapping (override if your integration differs)
@@ -311,6 +552,9 @@
         bottom_attribute : 'tilt_position',  // reads current_tilt_position
         invert_top       : false,
         invert_bottom    : false,
+        sky_clock        : false,       // dynamic sky colour based on time of day
+        sky_lat_entity   : null,        // sensor entity for latitude  (optional, for sunrise/set)
+        sky_lon_entity   : null,        // sensor entity for longitude (optional)
         ...config,
       };
 
@@ -348,6 +592,9 @@
         return;
       }
 
+      // Dynamic sky: update glass background on every hass update (≈ every 30 s in HA)
+      if (this._config.sky_clock) this._updateSky();
+
       // Always track actual entity positions
       const changed =
         Math.abs(newTop    - this._top)    > 0.01 ||
@@ -374,6 +621,25 @@
           this._paint(changed);
         }
       }
+    }
+
+    /* ---- Dynamic sky update ----------------------------------------- */
+
+    _updateSky () {
+      const win = this.shadowRoot?.getElementById('win');
+      if (!win) return;
+      const c = this._config;
+      // Read lat/lon from HA sensor entities if configured
+      const lat = c.sky_lat_entity
+        ? parseFloat(this._hass.states[c.sky_lat_entity]?.state)
+        : null;
+      const lon = c.sky_lon_entity
+        ? parseFloat(this._hass.states[c.sky_lon_entity]?.state)
+        : null;
+      win.style.setProperty('--t-glass-runtime', _skyGradient(
+        isFinite(lat) ? lat : null,
+        isFinite(lon) ? lon : null,
+      ));
     }
 
     /* ---- Read state (with optional hybrid overrides) ----------------- */
@@ -725,7 +991,7 @@
           ${sc ? `
           <div class="controls">
             <div class="beam-ctrl">
-              <div class="ctrl-label">${this._t('ui.top_beam')}</div>
+              <div class="ctrl-label" aria-label="${this._t('ui.top_beam')}">▲</div>
               <div class="btn-row">
                 <button class="ctrl-btn" id="top-up"   aria-label="${this._t('ui.top_up')}">▲</button>
                 <span   class="ctrl-pct" id="pct-top"></span>
@@ -733,7 +999,7 @@
               </div>
             </div>
             <div class="beam-ctrl">
-              <div class="ctrl-label">${this._t('ui.bottom_beam')}</div>
+              <div class="ctrl-label" aria-label="${this._t('ui.bottom_beam')}">▼</div>
               <div class="btn-row">
                 <button class="ctrl-btn" id="bot-up"   aria-label="${this._t('ui.bot_up')}">▲</button>
                 <span   class="ctrl-pct" id="pct-bot"></span>
@@ -863,20 +1129,10 @@
             overflow    : hidden;
             user-select : none;
             touch-action: none;
-            background  : var(--t-glass, linear-gradient(180deg,rgba(173,216,240,.75) 0%,rgba(230,248,255,.55) 100%));
-            box-shadow  : inset 0 0 14px rgba(0,0,0,0.08);
-          }
-
-          /* Centre mullion */
-          .shade-window::after {
-            content   : '';
-            position  : absolute;
-            top       : 0; bottom: 0;
-            left      : 50%;
-            width     : 3px;
-            background: var(--t-mullion, var(--t-frame, #777));
-            pointer-events: none;
-            z-index   : 5;
+            background  : ${c.sky_clock ? 'var(--t-glass-runtime, var(--t-glass))' : 'var(--t-glass)'};
+            box-shadow  : inset 0 0 20px rgba(0,0,0,0.10),
+                          inset 2px 0 6px rgba(255,255,255,0.08),
+                          inset -2px 0 6px rgba(0,0,0,0.06);
           }
 
           /* ---- Shade fabric ---- */
@@ -893,10 +1149,10 @@
           .beam {
             position     : absolute;
             left: 0; right: 0;
-            height       : 14px;
+            height       : 16px;
             transform    : translateY(-50%);
             background   : var(--t-beam);
-            border-radius: 3px;
+            border-radius: 4px;
             box-shadow   : var(--t-beam-sh);
             cursor       : ns-resize;
             z-index      : 10;
@@ -907,11 +1163,15 @@
             position : absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width    : 44%;
+            width    : 36%;
             height   : 2px;
-            background: rgba(255,255,255,0.30);
+            background: rgba(255,255,255,0.45);
             border-radius: 1px;
-            box-shadow: 0 -5px 0 rgba(255,255,255,.15), 0 5px 0 rgba(255,255,255,.15);
+            box-shadow:
+              0 -4px 0 rgba(255,255,255,.18),
+              0  4px 0 rgba(255,255,255,.18),
+              0 -8px 0 rgba(255,255,255,.08),
+              0  8px 0 rgba(255,255,255,.08);
           }
 
           /* Percentage label on beam */
@@ -936,7 +1196,7 @@
             margin-top           : 12px;
           }
           .beam-ctrl { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-          .ctrl-label { font-size: 0.78em; font-weight: 500; color: var(--secondary-text-color); }
+          .ctrl-label { font-size: 1.0em; font-weight: 700; color: var(--primary-color, #03a9f4); line-height: 1; }
           .btn-row { display: flex; align-items: center; gap: 8px; }
           .ctrl-btn {
             width: 34px; height: 34px;
@@ -1006,6 +1266,7 @@
 
       this._wire();
       this._paint(false);
+      if (this._config.sky_clock) this._updateSky();
     }
 
     /* ---- Attach event listeners after render ----------------------- */
@@ -1568,13 +1829,25 @@
       // ── Appearance ────────────────────────────────────────────────────
       form.appendChild(this._makeSection(this._t('editor.appearance')));
       form.appendChild(this._makeSelectRow('theme', this._t('editor.theme'),
-        [['wood',    this._t('theme.wood')],
-         ['modern',  this._t('theme.modern')],
-         ['minimal', this._t('theme.minimal')],
-         ['dark',    this._t('theme.dark')]],
+        [['wood',        this._t('theme.wood')],
+         ['modern',      this._t('theme.modern')],
+         ['minimal',     this._t('theme.minimal')],
+         ['dark',        this._t('theme.dark')],
+         ['terracotta',  this._t('theme.terracotta')],
+         ['ocean',       this._t('theme.ocean')]],
         c.theme ?? 'wood'));
       form.appendChild(this._makeTextField('card_height', this._t('editor.card_height'), 'number',
         c.card_height ?? '', { min: 80, max: 1200, placeholder: 'auto' }));
+
+      // ── Dynamic Sky ───────────────────────────────────────────────────
+      form.appendChild(this._makeSection(this._t('editor.sky_clock')));
+      form.appendChild(this._makeToggleRow('sky_clock', this._t('editor.sky_clock_toggle'), c.sky_clock));
+      if (c.sky_clock) {
+        form.appendChild(this._makePickerRow('sky_lat_entity', this._t('editor.sky_lat_entity'),
+          ['sensor', 'input_number', 'number'], c.sky_lat_entity ?? ''));
+        form.appendChild(this._makePickerRow('sky_lon_entity', this._t('editor.sky_lon_entity'),
+          ['sensor', 'input_number', 'number'], c.sky_lon_entity ?? ''));
+      }
 
       // ── Pop-up ────────────────────────────────────────────────────────
       form.appendChild(this._makeSection(this._t('editor.popup_mode')));

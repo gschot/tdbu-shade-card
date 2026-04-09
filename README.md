@@ -227,6 +227,16 @@ Four built-in themes, selectable via `theme:` or the visual editor:
 
 ## Changelog
 
+### v1.5.2-beta.1
+- **Centre mullion removed** — the vertical dividing line in the middle of the window is gone for a cleaner look.
+- **Realistic fabric** — the shade now shows only subtle horizontal fold lines (simulating the accordion-style pleats between the two beams), replacing the previous unrealistic grid pattern.
+- **3-D beams and fabric** — beams have a proper top-highlight / bottom-shadow gradient and deeper edge shadows for a raised, three-dimensional appearance. The fabric has matching top/bottom edge shadows.
+- **New themes** — two additional visual themes:
+  - `terracotta` — Mediterranean clay frame with warm sand fabric
+  - `ocean` — teal/steel frame with aqua glass and deep-blue fabric
+- **Dynamic sky colour** (`sky_clock: true`) — the window background transitions through realistic sky colours (pre-dawn → sunrise → midday → sunset → dusk → night) based on the current local time. When `sky_lat_entity` and `sky_lon_entity` sensor entities are provided, sunrise and sunset times are calculated for the actual location; otherwise a generic mid-latitude approximation is used. Toggle available in the card editor under *Dynamic Sky*.
+- **Beam type icons in controls** — the *Top Beam* / *Bottom Beam* text labels in the arrow-control section are replaced by ▲ / ▼ triangle icons matching the direction convention of each beam.
+
 ### v1.5.1-beta.1
 - **Bug fix:** `touchcancel` event (triggered by notifications, system gestures or scroll interruption) was not handled — the drag state became permanently stuck until the page was reloaded. A new `_handleCancel` handler now correctly clears the drag without sending a spurious position command.
 - **Bug fix:** tapping a beam without moving it caused `_ghostTopSent` / `_ghostBottomSent` to remain `true` indefinitely (ghost was never allocated so `_applyHass` could never clear the flag). The sent-flag is now only written when a ghost position actually exists.
