@@ -227,6 +227,12 @@ Four built-in themes, selectable via `theme:` or the visual editor:
 
 ## Changelog
 
+### v1.5.1-beta.1
+- **Bug fix:** `touchcancel` event (triggered by notifications, system gestures or scroll interruption) was not handled — the drag state became permanently stuck until the page was reloaded. A new `_handleCancel` handler now correctly clears the drag without sending a spurious position command.
+- **Bug fix:** tapping a beam without moving it caused `_ghostTopSent` / `_ghostBottomSent` to remain `true` indefinitely (ghost was never allocated so `_applyHass` could never clear the flag). The sent-flag is now only written when a ghost position actually exists.
+- **Optimisation:** in hybrid mode, when both beams share the same `state_entity` or `entity`, `_readSingleEntity` was called twice per update. The result is now cached within each `_applyHass` call via a local `Map`.
+- **Refactor:** duplicated mode-detection ternary in the card editor is now a shared `_detectMode(cfg)` helper.
+
 ### v1.5.0
 - **Ghost slider** — when dragging a beam or using the arrow buttons, a semi-transparent ghost beam appears at the target position while the actual beam keeps reflecting the current entity value
   - Ghost **pulses** (dashed outline animation) while the user is dragging, indicating the beam has not been released yet

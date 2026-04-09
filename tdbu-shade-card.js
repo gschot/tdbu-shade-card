@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.5.0';
+  const VERSION = '1.5.1-beta.1';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
@@ -235,8 +235,9 @@
       this._ghostBottomSent = false;
 
       // Bound handlers kept so we can remove them later
-      this._onMove = this._handleMove.bind(this);
-      this._onEnd  = this._handleEnd.bind(this);
+      this._onMove   = this._handleMove.bind(this);
+      this._onEnd    = this._handleEnd.bind(this);
+      this._onCancel = this._handleCancel.bind(this);
     }
 
     /* ---- Lovelace helpers ------------------------------------------ */
@@ -313,9 +314,16 @@
         ...config,
       };
 
+      // Sanitise card_height: must be null or a positive number
+      if (this._config.card_height != null) {
+        const h = Number(this._config.card_height);
+        this._config.card_height = (isFinite(h) && h > 0) ? h : null;
+      }
+
       // Re-render when config is updated after first render
       if (this._ready) {
         this._ready = false;
+        this._cleanup();   // remove stale document-level listeners before re-render
         if (this._hass) this._applyHass();
       }
     }
@@ -385,14 +393,21 @@
       const hasStateOverride = !!(c.state_entity || c.top_state_entity || c.bottom_state_entity);
 
       if (hasStateOverride) {
+        // Cache single-entity reads so the same state object is never parsed twice
+        const _se = new Map();
+        const readSingle = (id) => {
+          if (!_se.has(id)) _se.set(id, this._readSingleEntity(h.states[id]));
+          return _se.get(id);
+        };
+
         // ── Top beam ──────────────────────────────────────────────────
         let topVal;
         if (c.top_state_entity) {
           topVal = this._readPosition(h.states[c.top_state_entity], c.invert_top);
         } else if (c.state_entity) {
-          [topVal] = this._readSingleEntity(h.states[c.state_entity]);
+          [topVal] = readSingle(c.state_entity);
         } else if (c.entity) {
-          [topVal] = this._readSingleEntity(h.states[c.entity]);
+          [topVal] = readSingle(c.entity);
         } else {
           topVal = this._readPosition(h.states[c.top_entity], c.invert_top);
         }
@@ -402,9 +417,9 @@
         if (c.bottom_state_entity) {
           botVal = this._readPosition(h.states[c.bottom_state_entity], c.invert_bottom);
         } else if (c.state_entity) {
-          [, botVal] = this._readSingleEntity(h.states[c.state_entity]);
+          [, botVal] = readSingle(c.state_entity);
         } else if (c.entity) {
-          [, botVal] = this._readSingleEntity(h.states[c.entity]);
+          [, botVal] = readSingle(c.entity);
         } else {
           botVal = this._readPosition(h.states[c.bottom_entity], c.invert_bottom);
         }
@@ -530,12 +545,10 @@
      * @param {boolean} animate  When true, uses CSS transitions.
      */
     _paint (animate = false) {
-      const sr = this.shadowRoot;
-      if (!sr || !this._ready) return;
+      if (!this._ready || !this._els) return;
 
-      const topBeam = sr.getElementById('top-beam');
-      const botBeam = sr.getElementById('bot-beam');
-      const fabric  = sr.getElementById('fabric');
+      const { topBeam, botBeam, fabric, topGhost, botGhost,
+              lblTop, lblBot, lblGT, lblGB, pctTop, pctBot, trigPct } = this._els;
       if (!topBeam) return;
 
       // Visual Y positions (% from top of window)
@@ -556,14 +569,11 @@
       fabric.style.height  = `${fabH}%`;
 
       // Ghost beams (drag / step target indicators)
-      const topGhost = sr.getElementById('top-beam-ghost');
-      const botGhost = sr.getElementById('bot-beam-ghost');
       if (topGhost) {
         if (this._ghostTop !== null) {
           topGhost.style.display = 'block';
           topGhost.style.top     = `${this._ghostTop}%`;
           topGhost.classList.toggle('sent', this._ghostTopSent);
-          const lblGT = sr.getElementById('lbl-ghost-top');
           if (lblGT) lblGT.textContent = `${Math.round(this._ghostTop)}%`;
         } else {
           topGhost.style.display = 'none';
@@ -574,7 +584,6 @@
           botGhost.style.display = 'block';
           botGhost.style.top     = `${100 - this._ghostBottom}%`;
           botGhost.classList.toggle('sent', this._ghostBottomSent);
-          const lblGB = sr.getElementById('lbl-ghost-bot');
           if (lblGB) lblGB.textContent = `${Math.round(this._ghostBottom)}%`;
         } else {
           botGhost.style.display = 'none';
@@ -582,19 +591,14 @@
       }
 
       // Percentage labels on beams (show_percentages)
-      const lblTop = sr.getElementById('lbl-top');
-      const lblBot = sr.getElementById('lbl-bot');
       if (lblTop) lblTop.textContent = `${Math.round(this._top)}%`;
       if (lblBot) lblBot.textContent = `${Math.round(this._bottom)}%`;
 
       // Percentages in the controls section
-      const pctTop = sr.getElementById('pct-top');
-      const pctBot = sr.getElementById('pct-bot');
       if (pctTop) pctTop.textContent = `${Math.round(this._top)}%`;
       if (pctBot) pctBot.textContent = `${Math.round(this._bottom)}%`;
 
       // Popup trigger bar summary
-      const trigPct = sr.getElementById('trigger-pct');
       if (trigPct) trigPct.textContent = `${this._t('ui.top_summary')}: ${Math.round(this._top)}%  ·  ${this._t('ui.bottom_summary')}: ${Math.round(this._bottom)}%`;
     }
 
@@ -650,35 +654,94 @@
     _handleEnd () {
       if (!this._drag) return;
 
-      document.removeEventListener('mousemove', this._onMove);
-      document.removeEventListener('mouseup',   this._onEnd);
-      document.removeEventListener('touchmove', this._onMove);
-      document.removeEventListener('touchend',  this._onEnd);
+      document.removeEventListener('mousemove',   this._onMove);
+      document.removeEventListener('mouseup',     this._onEnd);
+      document.removeEventListener('touchmove',   this._onMove);
+      document.removeEventListener('touchend',    this._onEnd);
+      document.removeEventListener('touchcancel', this._onCancel);
 
       const beam  = this._drag.beam;
-      // Send the ghost (target) position; fall back to actual if ghost was never set
-      const value = (beam === 'top')
-        ? (this._ghostTop    ?? this._top)
-        : (this._ghostBottom ?? this._bottom);
+      const ghost = (beam === 'top') ? this._ghostTop : this._ghostBottom;
+      this._drag  = null;
 
-      // Mark ghost as sent: stop pulsing, beam is on its way
-      if (beam === 'top')    this._ghostTopSent    = true;
-      else                   this._ghostBottomSent = true;
-
-      this._sendToHA(beam, value);
-      this._drag = null;
+      if (ghost !== null) {
+        // Ghost was set — send target position and mark as on its way
+        if (beam === 'top')    this._ghostTopSent    = true;
+        else                   this._ghostBottomSent = true;
+        this._sendToHA(beam, ghost);
+      } else {
+        // Touch/click without movement — no command needed, clear stale sent-flag
+        if (beam === 'top')    this._ghostTopSent    = false;
+        else                   this._ghostBottomSent = false;
+      }
       this._paint(false);   // immediately show non-pulsing ghost
     }
 
+    _handleCancel () {
+      if (!this._drag) return;
+
+      document.removeEventListener('mousemove',   this._onMove);
+      document.removeEventListener('mouseup',     this._onEnd);
+      document.removeEventListener('touchmove',   this._onMove);
+      document.removeEventListener('touchend',    this._onEnd);
+      document.removeEventListener('touchcancel', this._onCancel);
+
+      this._drag = null;
+      // Discard unsent ghost — touch was interrupted, no command sent
+      if (!this._ghostTopSent)    this._ghostTop    = null;
+      if (!this._ghostBottomSent) this._ghostBottom = null;
+      this._paint(false);
+    }
+
+    /** Remove all document-level listeners (drag + Escape). */
+    _cleanup () {
+      document.removeEventListener('mousemove',   this._onMove);
+      document.removeEventListener('mouseup',     this._onEnd);
+      document.removeEventListener('touchmove',   this._onMove);
+      document.removeEventListener('touchend',    this._onEnd);
+      document.removeEventListener('touchcancel', this._onCancel);
+      if (this._onEsc) {
+        document.removeEventListener('keydown', this._onEsc);
+        this._onEsc = null;
+      }
+    }
+
     disconnectedCallback () {
-      document.removeEventListener('mousemove', this._onMove);
-      document.removeEventListener('mouseup',   this._onEnd);
-      document.removeEventListener('touchmove', this._onMove);
-      document.removeEventListener('touchend',  this._onEnd);
-      if (this._onEsc) document.removeEventListener('keydown', this._onEsc);
+      this._cleanup();
     }
 
     /* ---- Rendering -------------------------------------------------- */
+
+    /** Returns the shade window + optional controls HTML (shared by popup and inline). */
+    _renderWindow (sp, sc) {
+      return `
+          <div class="shade-window" id="win">
+            <div class="fabric" id="fabric"></div>
+            <div class="beam ghost-beam" id="top-beam-ghost">${sp ? `<span class="beam-label" id="lbl-ghost-top"></span>` : ''}</div>
+            <div class="beam ghost-beam" id="bot-beam-ghost">${sp ? `<span class="beam-label" id="lbl-ghost-bot"></span>` : ''}</div>
+            <div class="beam" id="top-beam">${sp ? `<span class="beam-label" id="lbl-top"></span>` : ''}</div>
+            <div class="beam" id="bot-beam">${sp ? `<span class="beam-label" id="lbl-bot"></span>` : ''}</div>
+          </div>
+          ${sc ? `
+          <div class="controls">
+            <div class="beam-ctrl">
+              <div class="ctrl-label">${this._t('ui.top_beam')}</div>
+              <div class="btn-row">
+                <button class="ctrl-btn" id="top-up"   aria-label="${this._t('ui.top_up')}">▲</button>
+                <span   class="ctrl-pct" id="pct-top"></span>
+                <button class="ctrl-btn" id="top-down" aria-label="${this._t('ui.top_down')}">▼</button>
+              </div>
+            </div>
+            <div class="beam-ctrl">
+              <div class="ctrl-label">${this._t('ui.bottom_beam')}</div>
+              <div class="btn-row">
+                <button class="ctrl-btn" id="bot-up"   aria-label="${this._t('ui.bot_up')}">▲</button>
+                <span   class="ctrl-pct" id="pct-bot"></span>
+                <button class="ctrl-btn" id="bot-down" aria-label="${this._t('ui.bot_down')}">▼</button>
+              </div>
+            </div>
+          </div>` : ''}`;
+    }
 
     _renderCard () {
       const c  = this._config;
@@ -918,32 +981,7 @@
           <div class="popup-box">
             <button class="popup-close" id="popup-close" aria-label="${this._t('ui.close')}">✕</button>
             ${c.name ? `<div class="popup-title">${this._esc(c.name)}</div>` : ''}
-            <div class="shade-window" id="win">
-              <div class="fabric" id="fabric"></div>
-              <div class="beam ghost-beam" id="top-beam-ghost">${sp ? `<span class="beam-label" id="lbl-ghost-top"></span>` : ''}</div>
-              <div class="beam ghost-beam" id="bot-beam-ghost">${sp ? `<span class="beam-label" id="lbl-ghost-bot"></span>` : ''}</div>
-              <div class="beam" id="top-beam">${sp ? `<span class="beam-label" id="lbl-top"></span>` : ''}</div>
-              <div class="beam" id="bot-beam">${sp ? `<span class="beam-label" id="lbl-bot"></span>` : ''}</div>
-            </div>
-            ${sc ? `
-            <div class="controls">
-              <div class="beam-ctrl">
-                <div class="ctrl-label">${this._t('ui.top_beam')}</div>
-                <div class="btn-row">
-                  <button class="ctrl-btn" id="top-up"   aria-label="${this._t('ui.top_up')}">▲</button>
-                  <span   class="ctrl-pct" id="pct-top"></span>
-                  <button class="ctrl-btn" id="top-down" aria-label="${this._t('ui.top_down')}">▼</button>
-                </div>
-              </div>
-              <div class="beam-ctrl">
-                <div class="ctrl-label">${this._t('ui.bottom_beam')}</div>
-                <div class="btn-row">
-                  <button class="ctrl-btn" id="bot-up"   aria-label="${this._t('ui.bot_up')}">▲</button>
-                  <span   class="ctrl-pct" id="pct-bot"></span>
-                  <button class="ctrl-btn" id="bot-down" aria-label="${this._t('ui.bot_down')}">▼</button>
-                </div>
-              </div>
-            </div>` : ''}
+            ${this._renderWindow(sp, sc)}
           </div>
         </div>
 
@@ -961,32 +999,7 @@
         <!-- ═══ Normal inline card ═══ -->
         <ha-card>
           ${c.name ? `<div class="title">${this._esc(c.name)}</div>` : ''}
-          <div class="shade-window" id="win">
-            <div class="fabric" id="fabric"></div>
-            <div class="beam ghost-beam" id="top-beam-ghost">${sp ? `<span class="beam-label" id="lbl-ghost-top"></span>` : ''}</div>
-            <div class="beam ghost-beam" id="bot-beam-ghost">${sp ? `<span class="beam-label" id="lbl-ghost-bot"></span>` : ''}</div>
-            <div class="beam" id="top-beam">${sp ? `<span class="beam-label" id="lbl-top"></span>` : ''}</div>
-            <div class="beam" id="bot-beam">${sp ? `<span class="beam-label" id="lbl-bot"></span>` : ''}</div>
-          </div>
-          ${sc ? `
-          <div class="controls">
-            <div class="beam-ctrl">
-              <div class="ctrl-label">${this._t('ui.top_beam')}</div>
-              <div class="btn-row">
-                <button class="ctrl-btn" id="top-up"   aria-label="${this._t('ui.top_up')}">▲</button>
-                <span   class="ctrl-pct" id="pct-top"></span>
-                <button class="ctrl-btn" id="top-down" aria-label="${this._t('ui.top_down')}">▼</button>
-              </div>
-            </div>
-            <div class="beam-ctrl">
-              <div class="ctrl-label">${this._t('ui.bottom_beam')}</div>
-              <div class="btn-row">
-                <button class="ctrl-btn" id="bot-up"   aria-label="${this._t('ui.bot_up')}">▲</button>
-                <span   class="ctrl-pct" id="pct-bot"></span>
-                <button class="ctrl-btn" id="bot-down" aria-label="${this._t('ui.bot_down')}">▼</button>
-              </div>
-            </div>
-          </div>` : ''}
+          ${this._renderWindow(sp, sc)}
         </ha-card>
         `}
       `;
@@ -1004,14 +1017,31 @@
       const bb  = sr.getElementById('bot-beam');
       if (!win || !tb || !bb) return;
 
+      // Cache DOM references for _paint() so we avoid repeated getElementById calls
+      this._els = {
+        topBeam  : tb,
+        botBeam  : bb,
+        fabric   : sr.getElementById('fabric'),
+        topGhost : sr.getElementById('top-beam-ghost'),
+        botGhost : sr.getElementById('bot-beam-ghost'),
+        lblTop   : sr.getElementById('lbl-top'),
+        lblBot   : sr.getElementById('lbl-bot'),
+        lblGT    : sr.getElementById('lbl-ghost-top'),
+        lblGB    : sr.getElementById('lbl-ghost-bot'),
+        pctTop   : sr.getElementById('pct-top'),
+        pctBot   : sr.getElementById('pct-bot'),
+        trigPct  : sr.getElementById('trigger-pct'),
+      };
+
       const startDrag = (beam) => (e) => {
         e.preventDefault();
         e.stopPropagation();
         this._drag = { beam, rect: win.getBoundingClientRect() };
-        document.addEventListener('mousemove', this._onMove);
-        document.addEventListener('mouseup',   this._onEnd);
-        document.addEventListener('touchmove', this._onMove, { passive: false });
-        document.addEventListener('touchend',  this._onEnd);
+        document.addEventListener('mousemove',   this._onMove);
+        document.addEventListener('mouseup',     this._onEnd);
+        document.addEventListener('touchmove',   this._onMove,   { passive: false });
+        document.addEventListener('touchend',    this._onEnd);
+        document.addEventListener('touchcancel', this._onCancel);
       };
 
       tb.addEventListener('mousedown',  startDrag('top'));
@@ -1058,8 +1088,8 @@
     /* ---- Utilities -------------------------------------------------- */
 
     _esc (s) {
-      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
-      return String(s).replace(/[&<>"]/g, c => map[c]);
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+      return String(s).replace(/[&<>"']/g, c => map[c]);
     }
 
     _t (key) { return t(this._hass, key); }
@@ -1097,6 +1127,14 @@
     }
 
     _t (key) { return t(this._hass, key); }
+
+    _detectMode (cfg) {
+      return (cfg.state_entity !== undefined ||
+              cfg.top_state_entity !== undefined ||
+              cfg.bottom_state_entity !== undefined)
+        ? 'hybrid'
+        : (('entity' in cfg) ? 'single' : 'dual');
+    }
 
     _fire () {
       this.dispatchEvent(new CustomEvent('config-changed', {
@@ -1304,9 +1342,7 @@
       //   hybrid  — state entities are explicitly configured (separate from control)
       //   single  — one cover entity handles both control and state
       //   dual    — two entities handle both control and state
-      const mode = (c.state_entity !== undefined || c.top_state_entity !== undefined || c.bottom_state_entity !== undefined)
-        ? 'hybrid'
-        : (('entity' in c) ? 'single' : 'dual');
+      const mode = this._detectMode(c);
       const sr   = this.shadowRoot;
 
       sr.innerHTML = `<style>
@@ -1399,11 +1435,7 @@
         btn.dataset.mode = val;
         btn.innerHTML    = html;
         btn.addEventListener('click', () => {
-          const currentMode = (this._config.state_entity !== undefined ||
-                               this._config.top_state_entity !== undefined ||
-                               this._config.bottom_state_entity !== undefined)
-            ? 'hybrid'
-            : (('entity' in this._config) ? 'single' : 'dual');
+          const currentMode = this._detectMode(this._config);
           if (val === currentMode) return;
           const next = { ...this._config };
           // Strip all entity-related keys; rebuild for chosen mode
