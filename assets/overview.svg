@@ -192,17 +192,17 @@
 
   <text x="312" y="67"  font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F5B1; Draggable beams</text>
   <text x="312" y="87"  font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F4F1; Touch &amp; mouse</text>
-  <text x="312" y="107" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F3A8; 4 visual themes</text>
+  <text x="312" y="107" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F3A8; 6 visual themes</text>
   <text x="312" y="127" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F4D0; Resizable height</text>
   <text x="312" y="147" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1FA9F; Pop-up mode</text>
   <text x="312" y="167" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F30D; EN / NL i18n</text>
   <text x="312" y="187" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x2699; Visual card editor</text>
   <text x="312" y="207" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F4CA; % shown on beams</text>
-  <text x="312" y="227" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F512; Beams never cross</text>
+  <text x="312" y="227" font-family="'Segoe UI',sans-serif" font-size="10.5" fill="#555">&#x1F305; Dynamic sky colour</text>
 
   <line x1="310" y1="240" x2="434" y2="240" stroke="#eee" stroke-width="1"/>
 
   <rect x="317" y="254" width="110" height="18" rx="9" fill="#03a9f4" opacity="0.15"/>
   <text x="372" y="267" text-anchor="middle"
-      font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#0278a8" font-weight="600">v1.5.2-beta.2 &#xB7; HACS compatible</text>
+      font-family="'Segoe UI',sans-serif" font-size="9.5" fill="#0278a8" font-weight="600">v1.6.0 &#xB7; HACS compatible</text>
 </svg>

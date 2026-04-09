@@ -40,6 +40,9 @@ The card shows a scaled window visualization with the two wooden rails and the s
 - Optional **percentage display** on each beam
 - Works with `cover`, `number`, `input_number`, and `sensor` entities
 - **Hybrid mode** — send commands to one entity set, read position feedback from a different entity set
+- **6 built-in visual themes** (wood, modern, minimal, dark, terracotta, ocean)
+- **Dynamic sky colour** — window background follows the time of day, with optional location-based sunrise/sunset
+- **Pop-up mode** — collapse the card into a trigger button that opens a floating overlay
 - Respects Home Assistant theme colors (`--primary-color`, etc.)
 
 ---
@@ -172,6 +175,12 @@ Inversion works in both dual-entity and single-entity mode.
 | `step` | `5` | % step size for arrow buttons |
 | `top_attribute` | `'position'` | Attribute for top beam (`position` or `tilt_position`) — single entity only |
 | `bottom_attribute` | `'tilt_position'` | Attribute for bottom beam — single entity only |
+| `theme` | `'wood'` | Visual theme: `wood`, `modern`, `minimal`, `dark`, `terracotta`, `ocean` |
+| `card_height` | `null` | Fixed window height in px; `null` = responsive 3:4 aspect ratio |
+| `popup` | `false` | Collapse card into a trigger button that opens a floating overlay |
+| `sky_clock` | `false` | Animate window background with time-of-day sky colour |
+| `sky_lat_entity` | `null` | Sensor entity for latitude — improves sunrise/sunset timing |
+| `sky_lon_entity` | `null` | Sensor entity for longitude |
 | `invert_top` | `false` | Invert top beam direction |
 | `invert_bottom` | `false` | Invert bottom beam direction |
 
@@ -209,12 +218,14 @@ The card expects values in the range **0 – 100 %**.
 
 ## Visual themes
 
-Four built-in themes, selectable via `theme:` or the visual editor:
+Six built-in themes, selectable via `theme:` or the visual editor:
 
 ![Natural Wood](https://raw.githubusercontent.com/gschot/tdbu-shade-card/master/assets/theme-wood.svg)
 ![Modern White](https://raw.githubusercontent.com/gschot/tdbu-shade-card/master/assets/theme-modern.svg)
 ![Minimal](https://raw.githubusercontent.com/gschot/tdbu-shade-card/master/assets/theme-minimal.svg)
 ![Dark](https://raw.githubusercontent.com/gschot/tdbu-shade-card/master/assets/theme-dark.svg)
+![Terracotta](https://raw.githubusercontent.com/gschot/tdbu-shade-card/master/assets/theme-terracotta.svg)
+![Ocean](https://raw.githubusercontent.com/gschot/tdbu-shade-card/master/assets/theme-ocean.svg)
 
 | Key | Description |
 |-----|-------------|
@@ -222,30 +233,50 @@ Four built-in themes, selectable via `theme:` or the visual editor:
 | `modern` | White aluminium frame, light-sky glass, beige linen fabric |
 | `minimal` | Frameless grey-on-grey, blends into light HA themes |
 | `dark` | Slate frame, night-sky glass, dark charcoal fabric |
+| `terracotta` | Mediterranean clay frame, warm amber glass, sandy fabric |
+| `ocean` | Teal/steel frame, aqua glass, deep-blue fabric |
+
+```yaml
+type: custom:tdbu-shade-card
+top_entity: input_number.shade_top
+bottom_entity: input_number.shade_bottom
+theme: terracotta
+```
+
+---
+
+## Dynamic sky colour
+
+Set `sky_clock: true` to make the window background transition through realistic sky colours based on the current local time.
+
+```yaml
+type: custom:tdbu-shade-card
+top_entity: input_number.shade_top
+bottom_entity: input_number.shade_bottom
+sky_clock: true
+# Optional — provide location sensors for accurate sunrise/sunset times:
+sky_lat_entity: sensor.home_latitude
+sky_lon_entity: sensor.home_longitude
+```
+
+When `sky_lat_entity` and `sky_lon_entity` are provided, sunrise and sunset times are calculated for the actual location. Without them, a mid-latitude approximation is used. The sky updates on every Home Assistant state push (approximately every 30 seconds).
 
 ---
 
 ## Changelog
 
-### v1.5.2-beta.2
-- **Controls label restored** — the *Top Beam* / *Bottom Beam* text labels in the arrow-control section are back (translated per active language). The ▲ / ▼ triangle icons remain in the popup trigger button summary only.
-- **Popup trigger** — the summary line in the minimised popup trigger button now shows ▲ / ▼ icons instead of the text “Top” / “Bottom”.
-
-### v1.5.2-beta.1
-- **Centre mullion removed** — the vertical dividing line in the middle of the window is gone for a cleaner look.
-- **Realistic fabric** — the shade now shows only subtle horizontal fold lines (simulating the accordion-style pleats between the two beams), replacing the previous unrealistic grid pattern.
-- **3-D beams and fabric** — beams have a proper top-highlight / bottom-shadow gradient and deeper edge shadows for a raised, three-dimensional appearance. The fabric has matching top/bottom edge shadows.
-- **New themes** — two additional visual themes:
-  - `terracotta` — Mediterranean clay frame with warm sand fabric
-  - `ocean` — teal/steel frame with aqua glass and deep-blue fabric
-- **Dynamic sky colour** (`sky_clock: true`) — the window background transitions through realistic sky colours (pre-dawn → sunrise → midday → sunset → dusk → night) based on the current local time. When `sky_lat_entity` and `sky_lon_entity` sensor entities are provided, sunrise and sunset times are calculated for the actual location; otherwise a generic mid-latitude approximation is used. Toggle available in the card editor under *Dynamic Sky*.
-- **Beam type icons in controls** — the *Top Beam* / *Bottom Beam* text labels in the arrow-control section are replaced by ▲ / ▼ triangle icons matching the direction convention of each beam.
-
-### v1.5.1-beta.1
-- **Bug fix:** `touchcancel` event (triggered by notifications, system gestures or scroll interruption) was not handled — the drag state became permanently stuck until the page was reloaded. A new `_handleCancel` handler now correctly clears the drag without sending a spurious position command.
-- **Bug fix:** tapping a beam without moving it caused `_ghostTopSent` / `_ghostBottomSent` to remain `true` indefinitely (ghost was never allocated so `_applyHass` could never clear the flag). The sent-flag is now only written when a ghost position actually exists.
-- **Optimisation:** in hybrid mode, when both beams share the same `state_entity` or `entity`, `_readSingleEntity` was called twice per update. The result is now cached within each `_applyHass` call via a local `Map`.
-- **Refactor:** duplicated mode-detection ternary in the card editor is now a shared `_detectMode(cfg)` helper.
+### v1.6.0
+- **Centre mullion removed** — the vertical dividing line in the middle of the window has been removed for a cleaner look.
+- **Realistic fabric** — the shade fabric now shows only subtle horizontal fold lines (simulating accordion-style pleats), replacing the previous grid pattern.
+- **3-D beams and fabric** — beams have a top-highlight / bottom-shadow gradient with deeper edge shadows for a raised appearance; the fabric has matching edge shadows.
+- **Two new visual themes:**
+  - `terracotta` — Mediterranean clay frame with warm amber glass and sandy fabric
+  - `ocean` — Teal/steel frame with aqua glass and deep-blue fabric
+- **Dynamic sky colour** (`sky_clock: true`) — the window background transitions through realistic sky colours based on the current local time. Provide `sky_lat_entity` / `sky_lon_entity` sensor entities for location-accurate sunrise/sunset timing.
+- **Popup trigger icons** — the summary line in the minimised popup trigger button now shows ▲ / ▼ icons instead of the text “Top” / “Bottom”.
+- **Bug fix:** `touchcancel` (triggered by notifications or system gestures) no longer leaves the drag permanently stuck.
+- **Bug fix:** tapping a beam without moving no longer leaves ghost state flags set indefinitely.
+- **Optimisation:** `_readSingleEntity` is no longer called twice per update when both beams share the same state entity.
 
 ### v1.5.0
 - **Ghost slider** — when dragging a beam or using the arrow buttons, a semi-transparent ghost beam appears at the target position while the actual beam keeps reflecting the current entity value
