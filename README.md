@@ -227,6 +227,10 @@ Four built-in themes, selectable via `theme:` or the visual editor:
 
 ## Changelog
 
+### v1.5.2-beta.2
+- **Controls label restored** — the *Top Beam* / *Bottom Beam* text labels in the arrow-control section are back (translated per active language). The ▲ / ▼ triangle icons remain in the popup trigger button summary only.
+- **Popup trigger** — the summary line in the minimised popup trigger button now shows ▲ / ▼ icons instead of the text “Top” / “Bottom”.
+
 ### v1.5.2-beta.1
 - **Centre mullion removed** — the vertical dividing line in the middle of the window is gone for a cleaner look.
 - **Realistic fabric** — the shade now shows only subtle horizontal fold lines (simulating the accordion-style pleats between the two beams), replacing the previous unrealistic grid pattern.

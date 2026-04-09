@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.5.2-beta.1';
+  const VERSION = '1.5.2-beta.2';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
@@ -865,7 +865,7 @@
       if (pctBot) pctBot.textContent = `${Math.round(this._bottom)}%`;
 
       // Popup trigger bar summary
-      if (trigPct) trigPct.textContent = `${this._t('ui.top_summary')}: ${Math.round(this._top)}%  ·  ${this._t('ui.bottom_summary')}: ${Math.round(this._bottom)}%`;
+      if (trigPct) trigPct.textContent = `▲ ${Math.round(this._top)}%  ·  ▼ ${Math.round(this._bottom)}%`;
     }
 
     /* ---- Arrow button step ------------------------------------------ */
@@ -991,7 +991,7 @@
           ${sc ? `
           <div class="controls">
             <div class="beam-ctrl">
-              <div class="ctrl-label" aria-label="${this._t('ui.top_beam')}">▲</div>
+              <div class="ctrl-label">${this._t('ui.top_beam')}</div>
               <div class="btn-row">
                 <button class="ctrl-btn" id="top-up"   aria-label="${this._t('ui.top_up')}">▲</button>
                 <span   class="ctrl-pct" id="pct-top"></span>
@@ -999,7 +999,7 @@
               </div>
             </div>
             <div class="beam-ctrl">
-              <div class="ctrl-label" aria-label="${this._t('ui.bottom_beam')}">▼</div>
+              <div class="ctrl-label">${this._t('ui.bottom_beam')}</div>
               <div class="btn-row">
                 <button class="ctrl-btn" id="bot-up"   aria-label="${this._t('ui.bot_up')}">▲</button>
                 <span   class="ctrl-pct" id="pct-bot"></span>
@@ -1196,7 +1196,7 @@
             margin-top           : 12px;
           }
           .beam-ctrl { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-          .ctrl-label { font-size: 1.0em; font-weight: 700; color: var(--primary-color, #03a9f4); line-height: 1; }
+          .ctrl-label { font-size: 0.78em; font-weight: 500; color: var(--secondary-text-color); }
           .btn-row { display: flex; align-items: center; gap: 8px; }
           .ctrl-btn {
             width: 34px; height: 34px;
@@ -1251,7 +1251,7 @@
             <span class="popup-trigger-icon">🪟</span>
             <span class="popup-trigger-info">
               <span class="popup-trigger-name">${this._esc(c.name || this._t('ui.default_name'))}</span><br>
-              <span class="popup-trigger-pct" id="trigger-pct">${this._t('ui.top_summary')}: —  ${this._t('ui.bottom_summary')}: —</span>
+              <span class="popup-trigger-pct" id="trigger-pct">▲ —  ·  ▼ —</span>
             </span>
           </button>
         </ha-card>
