@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.6.1-beta.1';
+  const VERSION = '1.6.1-beta.2';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
@@ -755,9 +755,9 @@
 
     /**
      * Send an updated beam value to Home Assistant.
-     * Stores the commanded value and, when the other beam is still in transit
-     * (its ghost was sent but not yet cleared), resends that beam's last
-     * commanded position to prevent the motor from being interrupted.
+     * Always also resends the other beam's last commanded position to prevent
+     * the integration from moving the wrong beam. Falls back to the currently
+     * known entity position when no command has been issued yet for that beam.
      * @param {'top'|'bottom'} beam         Which beam changed
      * @param {number}         internalVal  Internal 0-100 value
      */
@@ -772,18 +772,15 @@
       // Send the command for the requested beam
       this._doSendBeam(beam, v);
 
-      // If the other beam is still moving toward a commanded target, resend
-      // that target now so its motor is not disturbed by the new HA command.
-      if (beam === 'top'
-          && this._ghostBottomSent
-          && this._ghostBottom !== null
-          && this._lastSentBottom !== null) {
-        this._doSendBeam('bottom', this._lastSentBottom);
-      } else if (beam === 'bottom'
-          && this._ghostTopSent
-          && this._ghostTop !== null
-          && this._lastSentTop !== null) {
-        this._doSendBeam('top', this._lastSentTop);
+      // Always resend the other beam's last known target to prevent the
+      // integration from altering it. Use _lastSent if available, otherwise
+      // fall back to the current entity position.
+      if (beam === 'top') {
+        const otherVal = this._lastSentBottom ?? Math.round(this._bottom);
+        this._doSendBeam('bottom', otherVal);
+      } else {
+        const otherVal = this._lastSentTop ?? Math.round(this._top);
+        this._doSendBeam('top', otherVal);
       }
     }
 
