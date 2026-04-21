@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.6.0';
+  const VERSION = '1.6.1-beta.1';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
@@ -472,6 +472,9 @@
       this._ghostTopSent    = false;  // true after drag-end/step: command sent, waiting for motor
       this._ghostBottomSent = false;
 
+      this._lastSentTop    = null;  // last internal value commanded to top beam
+      this._lastSentBottom = null;  // last internal value commanded to bottom beam
+
       // Bound handlers kept so we can remove them later
       this._onMove   = this._handleMove.bind(this);
       this._onEnd    = this._handleEnd.bind(this);
@@ -752,17 +755,51 @@
 
     /**
      * Send an updated beam value to Home Assistant.
+     * Stores the commanded value and, when the other beam is still in transit
+     * (its ghost was sent but not yet cleared), resends that beam's last
+     * commanded position to prevent the motor from being interrupted.
      * @param {'top'|'bottom'} beam         Which beam changed
      * @param {number}         internalVal  Internal 0-100 value
      */
     _sendToHA (beam, internalVal) {
       if (!this._hass) return;
-      const c = this._config;
       const v = Math.round(internalVal);
+
+      // Remember the last position we commanded for this beam
+      if (beam === 'top') this._lastSentTop    = v;
+      else                this._lastSentBottom = v;
+
+      // Send the command for the requested beam
+      this._doSendBeam(beam, v);
+
+      // If the other beam is still moving toward a commanded target, resend
+      // that target now so its motor is not disturbed by the new HA command.
+      if (beam === 'top'
+          && this._ghostBottomSent
+          && this._ghostBottom !== null
+          && this._lastSentBottom !== null) {
+        this._doSendBeam('bottom', this._lastSentBottom);
+      } else if (beam === 'bottom'
+          && this._ghostTopSent
+          && this._ghostTop !== null
+          && this._lastSentTop !== null) {
+        this._doSendBeam('top', this._lastSentTop);
+      }
+    }
+
+    /**
+     * Low-level: issue a single HA service call for one beam.
+     * Does not update any tracked state — use _sendToHA for normal operations.
+     * @param {'top'|'bottom'} beam
+     * @param {number}         v    Already-rounded internal 0-100 value
+     */
+    _doSendBeam (beam, v) {
+      if (!this._hass) return;
+      const c = this._config;
 
       if (c.entity) {
         // ---- Single cover entity mode --------------------------------
-        const isBottom = (beam === 'bottom');
+        const isBottom  = (beam === 'bottom');
         const attribute = isBottom ? c.bottom_attribute : c.top_attribute;
         const invert    = isBottom ? c.invert_bottom    : c.invert_top;
         const haVal     = invert ? (100 - v) : v;
