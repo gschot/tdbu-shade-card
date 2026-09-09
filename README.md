@@ -8,7 +8,7 @@ A custom Lovelace card for Home Assistant that provides a **visual, interactive 
 
 ## Overview
 
-A TDBU shade has two independently moveable beams:
+A TDBU shade has two independently movable beams:
 
 | Beam | 0 % | 100 % |
 |------|-----|-------|
@@ -66,6 +66,11 @@ The card shows a scaled window visualization with the two wooden rails and the s
    ```
    /local/tdbu-shade-card/tdbu-shade-card.js   (type: JavaScript module)
    ```
+
+### Release channels
+
+- **Production (recommended)**: installs the latest stable tag from `master`.
+- **Beta testing**: use beta tags/branches only when you intentionally want pre-release behavior.
 
 ---
 
@@ -281,15 +286,15 @@ When `sky_lat_entity` and `sky_lon_entity` are provided, sunrise and sunset time
 ## Changelog
 
 ### v1.6.2
-- **Editor clarity improvement** — inversion toggles are now placed in the relevant entity blocks:
-  - `invert_top_control` / `invert_bottom_control` under **Control Entities**
-  - `invert_top_state` / `invert_bottom_state` under **State Entities**
-- This applies in both normal modes (single/dual) and hybrid mode, making it clearer that control and feedback inversion are independent.
+- **Editor clarity improvement** — inversion toggles are now placed in the relevant entity blocks.
+- `invert_top_control` / `invert_bottom_control` are grouped under **Control Entities**.
+- `invert_top_state` / `invert_bottom_state` are grouped under **State Entities**.
+- Applies in single, dual, and hybrid mode, making it clearer that control and feedback inversion are independent.
 
 ### v1.6.1
 - **Control/state inversion split** — top and bottom inversion are now independently configurable for command entities and feedback entities.
-  - New options: `invert_top_control`, `invert_bottom_control`, `invert_top_state`, `invert_bottom_state`
-  - Hybrid setups can now invert only control, only status, or both per beam
+- New options: `invert_top_control`, `invert_bottom_control`, `invert_top_state`, `invert_bottom_state`.
+- Hybrid setups can now invert only control, only status, or both per beam.
 - **Backward compatible migration** — legacy `invert_top` and `invert_bottom` are still supported and mapped to both new inversion roles.
 
 ### v1.6.0
