@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.6.1-beta.2';
+  const VERSION = '1.6.1';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
@@ -246,9 +246,13 @@
       'editor.card_height'       : 'Window height (px, leave empty for auto)',
       'editor.popup_mode'        : 'Pop-up Mode',
       'editor.popup'             : 'Show as pop-up overlay (triggered by button in card)',
-      'editor.direction'         : 'Direction',
-      'editor.invert_top'        : 'Invert top beam direction',
-      'editor.invert_bottom'     : 'Invert bottom beam direction',
+      'editor.direction'               : 'Direction',
+      'editor.direction_control'       : 'Control direction',
+      'editor.direction_status'        : 'Status direction',
+      'editor.invert_top_control'      : 'Invert top beam direction (control)',
+      'editor.invert_bottom_control'   : 'Invert bottom beam direction (control)',
+      'editor.invert_top_state'        : 'Invert top beam direction (status)',
+      'editor.invert_bottom_state'     : 'Invert bottom beam direction (status)',
       'editor.mode_hybrid'         : 'Hybrid<br>(split control / state)',
       'editor.control_entities'    : 'Control Entities',
       'editor.state_entities'      : 'State Entities',
@@ -305,9 +309,13 @@
       'editor.card_height'       : 'Vensterhoogte (px, leeg = automatisch)',
       'editor.popup_mode'        : 'Pop-upvenster',
       'editor.popup'             : 'Toon als pop-upvenster (geactiveerd via knop in kaart)',
-      'editor.direction'         : 'Richting',
-      'editor.invert_top'        : 'Richting bovenste rail omkeren',
-      'editor.invert_bottom'     : 'Richting onderste rail omkeren',
+      'editor.direction'               : 'Richting',
+      'editor.direction_control'       : 'Besturingsrichting',
+      'editor.direction_status'        : 'Statusrichting',
+      'editor.invert_top_control'      : 'Richting bovenste rail omkeren (besturing)',
+      'editor.invert_bottom_control'   : 'Richting onderste rail omkeren (besturing)',
+      'editor.invert_top_state'        : 'Richting bovenste rail omkeren (status)',
+      'editor.invert_bottom_state'     : 'Richting onderste rail omkeren (status)',
       'editor.mode_hybrid'         : 'Hybride<br>(gesplitst besturen/status)',
       'editor.control_entities'    : 'Besturingsentiteiten',
       'editor.state_entities'      : 'Statusentiteiten',
@@ -516,9 +524,11 @@
         // sky_lat_entity: 'sensor.home_latitude',   // optional, improves sunrise/set timing
         // sky_lon_entity: 'sensor.home_longitude',
 
-        // Invert a beam's percentage direction if your integration is reversed:
-        // invert_top   : false,
-        // invert_bottom: false,
+        // Invert percentage direction per integration role:
+        // invert_top_control   : false,
+        // invert_bottom_control: false,
+        // invert_top_state     : false,
+        // invert_bottom_state  : false,
       };
     }
 
@@ -553,13 +563,29 @@
         // Single-entity attribute mapping (override if your integration differs)
         top_attribute    : 'position',       // reads current_position
         bottom_attribute : 'tilt_position',  // reads current_tilt_position
-        invert_top       : false,
-        invert_bottom    : false,
+        invert_top_control    : false,
+        invert_bottom_control : false,
+        invert_top_state      : false,
+        invert_bottom_state   : false,
         sky_clock        : false,       // dynamic sky colour based on time of day
         sky_lat_entity   : null,        // sensor entity for latitude  (optional, for sunrise/set)
         sky_lon_entity   : null,        // sensor entity for longitude (optional)
         ...config,
       };
+
+      // Backward compatibility for pre-1.6.1 configs that only have invert_top/invert_bottom
+      if (config.invert_top_control === undefined && config.invert_top !== undefined) {
+        this._config.invert_top_control = !!config.invert_top;
+      }
+      if (config.invert_top_state === undefined && config.invert_top !== undefined) {
+        this._config.invert_top_state = !!config.invert_top;
+      }
+      if (config.invert_bottom_control === undefined && config.invert_bottom !== undefined) {
+        this._config.invert_bottom_control = !!config.invert_bottom;
+      }
+      if (config.invert_bottom_state === undefined && config.invert_bottom !== undefined) {
+        this._config.invert_bottom_state = !!config.invert_bottom;
+      }
 
       // Sanitise card_height: must be null or a positive number
       if (this._config.card_height != null) {
@@ -660,37 +686,39 @@
       const c = this._config;
       const h = this._hass;
       const hasStateOverride = !!(c.state_entity || c.top_state_entity || c.bottom_state_entity);
+      const invertTopState = this._getInvert('top', 'state');
+      const invertBotState = this._getInvert('bottom', 'state');
 
       if (hasStateOverride) {
         // Cache single-entity reads so the same state object is never parsed twice
         const _se = new Map();
         const readSingle = (id) => {
-          if (!_se.has(id)) _se.set(id, this._readSingleEntity(h.states[id]));
+          if (!_se.has(id)) _se.set(id, this._readSingleEntity(h.states[id], invertTopState, invertBotState));
           return _se.get(id);
         };
 
         // ── Top beam ──────────────────────────────────────────────────
         let topVal;
         if (c.top_state_entity) {
-          topVal = this._readPosition(h.states[c.top_state_entity], c.invert_top);
+          topVal = this._readPosition(h.states[c.top_state_entity], invertTopState);
         } else if (c.state_entity) {
           [topVal] = readSingle(c.state_entity);
         } else if (c.entity) {
           [topVal] = readSingle(c.entity);
         } else {
-          topVal = this._readPosition(h.states[c.top_entity], c.invert_top);
+          topVal = this._readPosition(h.states[c.top_entity], invertTopState);
         }
 
         // ── Bottom beam ───────────────────────────────────────────────
         let botVal;
         if (c.bottom_state_entity) {
-          botVal = this._readPosition(h.states[c.bottom_state_entity], c.invert_bottom);
+          botVal = this._readPosition(h.states[c.bottom_state_entity], invertBotState);
         } else if (c.state_entity) {
           [, botVal] = readSingle(c.state_entity);
         } else if (c.entity) {
           [, botVal] = readSingle(c.entity);
         } else {
-          botVal = this._readPosition(h.states[c.bottom_entity], c.invert_bottom);
+          botVal = this._readPosition(h.states[c.bottom_entity], invertBotState);
         }
 
         return [topVal ?? 0, botVal ?? 0];
@@ -698,12 +726,26 @@
 
       // ── Non-hybrid: state == control entities (original behaviour) ──
       if (c.entity) {
-        return this._readSingleEntity(h.states[c.entity]);
+        return this._readSingleEntity(h.states[c.entity], invertTopState, invertBotState);
       }
       return [
-        this._readPosition(h.states[c.top_entity],    c.invert_top),
-        this._readPosition(h.states[c.bottom_entity], c.invert_bottom),
+        this._readPosition(h.states[c.top_entity],    invertTopState),
+        this._readPosition(h.states[c.bottom_entity], invertBotState),
       ];
+    }
+
+    /**
+     * Resolve inversion per beam and role, while keeping legacy invert_top/
+     * invert_bottom compatible with older saved configs.
+     * @param {'top'|'bottom'} beam
+     * @param {'control'|'state'} role
+     */
+    _getInvert (beam, role) {
+      const c = this._config;
+      const key = `invert_${beam}_${role}`;
+      if (Object.prototype.hasOwnProperty.call(c, key)) return !!c[key];
+      const legacy = c[`invert_${beam}`];
+      return !!legacy;
     }
 
     /* ---- Read entity values ------------------------------------------ */
@@ -730,7 +772,7 @@
      * Read both beam values from a single cover entity.
      * Returns [topValue, bottomValue] in internal 0-100 coordinates.
      */
-    _readSingleEntity (stateObj) {
+    _readSingleEntity (stateObj, invertTop = false, invertBottom = false) {
       const c = this._config;
       if (!stateObj) return [0, 0];
 
@@ -746,8 +788,8 @@
       const botVal = Math.min(100, Math.max(0, Number(rawBot)));
 
       return [
-        c.invert_top    ? (100 - topVal) : topVal,
-        c.invert_bottom ? (100 - botVal) : botVal,
+        invertTop    ? (100 - topVal) : topVal,
+        invertBottom ? (100 - botVal) : botVal,
       ];
     }
 
@@ -798,7 +840,7 @@
         // ---- Single cover entity mode --------------------------------
         const isBottom  = (beam === 'bottom');
         const attribute = isBottom ? c.bottom_attribute : c.top_attribute;
-        const invert    = isBottom ? c.invert_bottom    : c.invert_top;
+        const invert    = this._getInvert(isBottom ? 'bottom' : 'top', 'control');
         const haVal     = invert ? (100 - v) : v;
 
         if (attribute === 'tilt_position') {
@@ -815,7 +857,7 @@
       } else {
         // ---- Dual entity mode ----------------------------------------
         const entityId = (beam === 'top') ? c.top_entity : c.bottom_entity;
-        const invert   = (beam === 'top') ? c.invert_top : c.invert_bottom;
+        const invert   = this._getInvert(beam === 'top' ? 'top' : 'bottom', 'control');
         const haVal    = invert ? (100 - v) : v;
         const domain   = entityId.split('.')[0];
 
@@ -1405,7 +1447,20 @@
     }
 
     setConfig (config) {
-      this._config = { ...config };
+      const next = { ...config };
+      if (next.invert_top_control === undefined && next.invert_top !== undefined) {
+        next.invert_top_control = !!next.invert_top;
+      }
+      if (next.invert_top_state === undefined && next.invert_top !== undefined) {
+        next.invert_top_state = !!next.invert_top;
+      }
+      if (next.invert_bottom_control === undefined && next.invert_bottom !== undefined) {
+        next.invert_bottom_control = !!next.invert_bottom;
+      }
+      if (next.invert_bottom_state === undefined && next.invert_bottom !== undefined) {
+        next.invert_bottom_state = !!next.invert_bottom;
+      }
+      this._config = next;
       this._render();
     }
 
@@ -1889,8 +1944,21 @@
 
       // ── Direction ─────────────────────────────────────────────────────
       form.appendChild(this._makeSection(this._t('editor.direction')));
-      form.appendChild(this._makeToggleRow('invert_top',    this._t('editor.invert_top'),    c.invert_top));
-      form.appendChild(this._makeToggleRow('invert_bottom', this._t('editor.invert_bottom'), c.invert_bottom));
+      form.appendChild(this._makeSection(this._t('editor.direction_control')));
+      form.appendChild(this._makeToggleRow('invert_top_control',
+        this._t('editor.invert_top_control'),
+        c.invert_top_control));
+      form.appendChild(this._makeToggleRow('invert_bottom_control',
+        this._t('editor.invert_bottom_control'),
+        c.invert_bottom_control));
+
+      form.appendChild(this._makeSection(this._t('editor.direction_status')));
+      form.appendChild(this._makeToggleRow('invert_top_state',
+        this._t('editor.invert_top_state'),
+        c.invert_top_state));
+      form.appendChild(this._makeToggleRow('invert_bottom_state',
+        this._t('editor.invert_bottom_state'),
+        c.invert_bottom_state));
 
       sr.appendChild(form);
     }

@@ -40,6 +40,7 @@ The card shows a scaled window visualization with the two wooden rails and the s
 - Optional **percentage display** on each beam
 - Works with `cover`, `number`, `input_number`, and `sensor` entities
 - **Hybrid mode** — send commands to one entity set, read position feedback from a different entity set
+- **Independent inversion per role** — set top/bottom inversion separately for control entities and state entities
 - **6 built-in visual themes** (wood, modern, minimal, dark, terracotta, ocean)
 - **Dynamic sky colour** — window background follows the time of day, with optional location-based sunrise/sunset
 - **Pop-up mode** — collapse the card into a trigger button that opens a floating overlay
@@ -147,17 +148,27 @@ State entity reading priority per beam:
 ### Inversion flags
 
 If your integration reports values in the opposite direction (e.g. `0` means fully
-extended instead of retracted), set the invert flag for that beam:
+extended instead of retracted), you can now configure inversion separately for:
+- **Control direction** (commands sent to HA)
+- **Status direction** (values read from HA)
 
 ```yaml
 type: custom:tdbu-shade-card
 top_entity: cover.shade_top
 bottom_entity: cover.shade_bottom
-invert_top: true      # mirrors the top-beam value: stored = 100 - ha_value
-invert_bottom: false
+top_state_entity: sensor.shade_top_feedback
+bottom_state_entity: sensor.shade_bottom_feedback
+
+# Control inversion (write path)
+invert_top_control: true
+invert_bottom_control: false
+
+# Status inversion (read path)
+invert_top_state: false
+invert_bottom_state: true
 ```
 
-Inversion works in both dual-entity and single-entity mode.
+Backward compatibility: existing `invert_top` / `invert_bottom` configs are still accepted and automatically mapped to both control and status inversion.
 
 ### All configuration options
 
@@ -181,8 +192,10 @@ Inversion works in both dual-entity and single-entity mode.
 | `sky_clock` | `false` | Animate window background with time-of-day sky colour |
 | `sky_lat_entity` | `null` | Sensor entity for latitude — improves sunrise/sunset timing |
 | `sky_lon_entity` | `null` | Sensor entity for longitude |
-| `invert_top` | `false` | Invert top beam direction |
-| `invert_bottom` | `false` | Invert bottom beam direction |
+| `invert_top_control` | `false` | Invert top beam direction for control/service calls |
+| `invert_bottom_control` | `false` | Invert bottom beam direction for control/service calls |
+| `invert_top_state` | `false` | Invert top beam direction for state/feedback reads |
+| `invert_bottom_state` | `false` | Invert bottom beam direction for state/feedback reads |
 
 ---
 
@@ -195,7 +208,7 @@ The card expects values in the range **0 – 100 %**.
 | Top beam | `0` = beam at top / fully retracted upward · `100` = beam fully down |
 | Bottom beam | `0` = beam at bottom / fully retracted downward · `100` = beam fully up |
 
-> Use `invert_top` / `invert_bottom: true` when your integration reports values in the opposite direction.
+> Use `invert_*_control` and/or `invert_*_state` when your integrations report reversed values.
 
 ### Supported domains (dual-entity mode)
 
@@ -264,6 +277,12 @@ When `sky_lat_entity` and `sky_lon_entity` are provided, sunrise and sunset time
 ---
 
 ## Changelog
+
+### v1.6.1
+- **Control/state inversion split** — top and bottom inversion are now independently configurable for command entities and feedback entities.
+  - New options: `invert_top_control`, `invert_bottom_control`, `invert_top_state`, `invert_bottom_state`
+  - Hybrid setups can now invert only control, only status, or both per beam
+- **Backward compatible migration** — legacy `invert_top` and `invert_bottom` are still supported and mapped to both new inversion roles.
 
 ### v1.6.0
 - **Centre mullion removed** — the vertical dividing line in the middle of the window has been removed for a cleaner look.
