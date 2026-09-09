@@ -170,6 +170,8 @@ invert_bottom_state: true
 
 Backward compatibility: existing `invert_top` / `invert_bottom` configs are still accepted and automatically mapped to both control and status inversion.
 
+In the visual editor, these toggles are grouped directly under **Control Entities** and **State Entities**, so it is clear which integration side they affect.
+
 ### All configuration options
 
 | Option | Default | Description |
@@ -277,6 +279,12 @@ When `sky_lat_entity` and `sky_lon_entity` are provided, sunrise and sunset time
 ---
 
 ## Changelog
+
+### v1.6.2
+- **Editor clarity improvement** — inversion toggles are now placed in the relevant entity blocks:
+  - `invert_top_control` / `invert_bottom_control` under **Control Entities**
+  - `invert_top_state` / `invert_bottom_state` under **State Entities**
+- This applies in both normal modes (single/dual) and hybrid mode, making it clearer that control and feedback inversion are independent.
 
 ### v1.6.1
 - **Control/state inversion split** — top and bottom inversion are now independently configurable for command entities and feedback entities.

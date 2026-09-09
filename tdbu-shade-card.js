@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.6.1';
+  const VERSION = '1.6.2';
   const TAG     = 'tdbu-shade-card';
 
   /* ---- Theme definitions ------------------------------------------- */
@@ -1821,11 +1821,30 @@
 
       // ── Entity picker(s) ─────────────────────────────────────────────
       if (mode === 'dual') {
+        form.appendChild(this._makeSection(this._t('editor.control_entities')));
         form.appendChild(this._makePickerRow('top_entity',    this._t('editor.top_entity'),
           ['cover', 'number', 'input_number'], c.top_entity));
         form.appendChild(this._makePickerRow('bottom_entity', this._t('editor.bottom_entity'),
           ['cover', 'number', 'input_number'], c.bottom_entity));
+
+        form.appendChild(this._makeSection(this._t('editor.direction_control')));
+        form.appendChild(this._makeToggleRow('invert_top_control',
+          this._t('editor.invert_top_control'),
+          c.invert_top_control));
+        form.appendChild(this._makeToggleRow('invert_bottom_control',
+          this._t('editor.invert_bottom_control'),
+          c.invert_bottom_control));
+
+        form.appendChild(this._makeSection(this._t('editor.state_entities')));
+        form.appendChild(this._makeSection(this._t('editor.direction_status')));
+        form.appendChild(this._makeToggleRow('invert_top_state',
+          this._t('editor.invert_top_state'),
+          c.invert_top_state));
+        form.appendChild(this._makeToggleRow('invert_bottom_state',
+          this._t('editor.invert_bottom_state'),
+          c.invert_bottom_state));
       } else if (mode === 'single') {
+        form.appendChild(this._makeSection(this._t('editor.control_entities')));
         form.appendChild(this._makePickerRow('entity', this._t('editor.cover_entity'), ['cover'], c.entity));
         form.appendChild(this._makeSelectRow('top_attribute', this._t('editor.top_attribute'),
           [['position',      this._t('editor.attr_position')],
@@ -1835,6 +1854,23 @@
           [['position',      this._t('editor.attr_position')],
            ['tilt_position', this._t('editor.attr_tilt')]],
           c.bottom_attribute ?? 'tilt_position'));
+
+        form.appendChild(this._makeSection(this._t('editor.direction_control')));
+        form.appendChild(this._makeToggleRow('invert_top_control',
+          this._t('editor.invert_top_control'),
+          c.invert_top_control));
+        form.appendChild(this._makeToggleRow('invert_bottom_control',
+          this._t('editor.invert_bottom_control'),
+          c.invert_bottom_control));
+
+        form.appendChild(this._makeSection(this._t('editor.state_entities')));
+        form.appendChild(this._makeSection(this._t('editor.direction_status')));
+        form.appendChild(this._makeToggleRow('invert_top_state',
+          this._t('editor.invert_top_state'),
+          c.invert_top_state));
+        form.appendChild(this._makeToggleRow('invert_bottom_state',
+          this._t('editor.invert_bottom_state'),
+          c.invert_bottom_state));
       } else {
         // ── Hybrid mode ───────────────────────────────────────────────
         const ctrlMode  = ('entity' in c) ? 'single' : 'dual';
@@ -1878,6 +1914,14 @@
             ['cover', 'number', 'input_number'], c.bottom_entity));
         }
 
+        form.appendChild(this._makeSection(this._t('editor.direction_control')));
+        form.appendChild(this._makeToggleRow('invert_top_control',
+          this._t('editor.invert_top_control'),
+          c.invert_top_control));
+        form.appendChild(this._makeToggleRow('invert_bottom_control',
+          this._t('editor.invert_bottom_control'),
+          c.invert_bottom_control));
+
         // — State sub-section —
         form.appendChild(this._makeSection(this._t('editor.state_entities')));
         form.appendChild(this._makeSubTabs(
@@ -1906,6 +1950,14 @@
           form.appendChild(this._makePickerRow('bottom_state_entity', this._t('editor.bottom_state_entity'),
             ['cover', 'number', 'input_number', 'sensor'], c.bottom_state_entity));
         }
+
+        form.appendChild(this._makeSection(this._t('editor.direction_status')));
+        form.appendChild(this._makeToggleRow('invert_top_state',
+          this._t('editor.invert_top_state'),
+          c.invert_top_state));
+        form.appendChild(this._makeToggleRow('invert_bottom_state',
+          this._t('editor.invert_bottom_state'),
+          c.invert_bottom_state));
       }
 
       // ── Display ───────────────────────────────────────────────────────
@@ -1941,24 +1993,6 @@
       // ── Pop-up ────────────────────────────────────────────────────────
       form.appendChild(this._makeSection(this._t('editor.popup_mode')));
       form.appendChild(this._makeToggleRow('popup', this._t('editor.popup'), c.popup));
-
-      // ── Direction ─────────────────────────────────────────────────────
-      form.appendChild(this._makeSection(this._t('editor.direction')));
-      form.appendChild(this._makeSection(this._t('editor.direction_control')));
-      form.appendChild(this._makeToggleRow('invert_top_control',
-        this._t('editor.invert_top_control'),
-        c.invert_top_control));
-      form.appendChild(this._makeToggleRow('invert_bottom_control',
-        this._t('editor.invert_bottom_control'),
-        c.invert_bottom_control));
-
-      form.appendChild(this._makeSection(this._t('editor.direction_status')));
-      form.appendChild(this._makeToggleRow('invert_top_state',
-        this._t('editor.invert_top_state'),
-        c.invert_top_state));
-      form.appendChild(this._makeToggleRow('invert_bottom_state',
-        this._t('editor.invert_bottom_state'),
-        c.invert_bottom_state));
 
       sr.appendChild(form);
     }
